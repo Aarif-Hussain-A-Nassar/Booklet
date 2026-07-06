@@ -4,6 +4,7 @@ let currentPage = 1;
 let scale = 1.0; // Zoom scale factor
 let sidebarOpen = false;
 let isTransitioning = false;
+let activeSlide = 'A'; // Tracks which slide is currently active ('A' or 'B')
 
 // DOM Elements
 const elements = {
@@ -16,10 +17,10 @@ const elements = {
     carouselWrapper: document.getElementById('carouselWrapper'),
     canvasViewport: document.getElementById('canvasViewport'),
     slideContainer: document.getElementById('slideContainer'),
-    slideCurrent: document.getElementById('slideCurrent'),
-    slideTransition: document.getElementById('slideTransition'),
-    pageImgCurrent: document.getElementById('pageImgCurrent'),
-    pageImgTransition: document.getElementById('pageImgTransition'),
+    slideA: document.getElementById('slideA'),
+    slideB: document.getElementById('slideB'),
+    pageImgA: document.getElementById('pageImgA'),
+    pageImgB: document.getElementById('pageImgB'),
     prevBtn: document.getElementById('prevBtn'),
     nextBtn: document.getElementById('nextBtn'),
     pageIndicator: document.getElementById('pageIndicator'),
@@ -109,23 +110,30 @@ function initDocument() {
 // Rendering Page Logic
 // -------------------------------------------------------------
 function renderCurrentPageDirectly() {
-    elements.pageImgCurrent.src = getPageImageUrl(currentPage);
+    const activeImg = activeSlide === 'A' ? elements.pageImgA : elements.pageImgB;
+    activeImg.src = getPageImageUrl(currentPage);
     applyZoom();
 }
 
 function applyZoom() {
-    const img = elements.pageImgCurrent;
+    const activeImg = activeSlide === 'A' ? elements.pageImgA : elements.pageImgB;
+    const inactiveImg = activeSlide === 'A' ? elements.pageImgB : elements.pageImgA;
+    
+    // Apply scale to active image
     if (scale === 1.0) {
-        img.style.transform = 'none';
+        activeImg.style.transform = 'none';
         elements.zoomLevelLabel.textContent = '100%';
     } else {
-        img.style.transform = `scale(${scale})`;
+        activeImg.style.transform = `scale(${scale})`;
         elements.zoomLevelLabel.textContent = `${Math.round(scale * 100)}%`;
     }
+    
+    // Reset scale on inactive image
+    inactiveImg.style.transform = 'none';
 }
 
 // -------------------------------------------------------------
-// Carousel Slide Transitions
+// Carousel Slide Transitions (Flicker-free A/B Swap)
 // -------------------------------------------------------------
 function navigateToPage(targetPage, direction) {
     if (isTransitioning) return;
@@ -133,49 +141,56 @@ function navigateToPage(targetPage, direction) {
     
     isTransitioning = true;
     
-    // Pre-load the target image to prevent any blank screen flicker
-    elements.pageImgTransition.src = getPageImageUrl(targetPage);
+    const inactiveSlide = activeSlide === 'A' ? 'B' : 'A';
+    const activeSlideEl = activeSlide === 'A' ? elements.slideA : elements.slideB;
+    const inactiveSlideEl = inactiveSlide === 'A' ? elements.slideA : elements.slideB;
+    const inactiveImg = inactiveSlide === 'A' ? elements.pageImgA : elements.pageImgB;
+    
+    // Pre-load the target image in the hidden inactive slide
+    inactiveImg.src = getPageImageUrl(targetPage);
     
     const onImageLoaded = () => {
         currentPage = targetPage;
         updateUI();
         
-        // Trigger sliding CSS animations
-        elements.slideCurrent.className = 'slide-item active';
-        elements.slideTransition.className = 'slide-item active';
+        // Mark both slides active and visible during transition
+        activeSlideEl.className = 'slide-item active';
+        inactiveSlideEl.className = 'slide-item active';
         
+        // Trigger hardware-accelerated CSS animations
         if (direction === 'next') {
-            elements.slideCurrent.classList.add('slide-out-left');
-            elements.slideTransition.classList.add('slide-in-right');
+            activeSlideEl.classList.add('slide-out-left');
+            inactiveSlideEl.classList.add('slide-in-right');
         } else if (direction === 'prev') {
-            elements.slideCurrent.classList.add('slide-out-right');
-            elements.slideTransition.classList.add('slide-in-left');
+            activeSlideEl.classList.add('slide-out-right');
+            inactiveSlideEl.classList.add('slide-in-left');
         }
         
-        // Wait for CSS slide transition to complete (400ms)
+        // Wait for CSS slide animation to finish (400ms)
         setTimeout(() => {
-            // Commit transition changes
-            elements.pageImgCurrent.src = elements.pageImgTransition.src;
-            applyZoom(); // Apply current zoom level to the active image
+            // Swap active slide pointer
+            activeSlide = inactiveSlide;
+            applyZoom(); // Apply current zoom settings to the newly active image
             
-            // Reset transition slide image
-            elements.pageImgTransition.removeAttribute('src');
+            // Set final inactive/active classes
+            activeSlideEl.className = 'slide-item';
+            inactiveSlideEl.className = 'slide-item active';
             
-            // Restore classes
-            elements.slideCurrent.className = 'slide-item active';
-            elements.slideTransition.className = 'slide-item';
+            // Clear image sources in inactive slide to free memory
+            const oldActiveImg = activeSlide === 'A' ? elements.pageImgB : elements.pageImgA;
+            oldActiveImg.removeAttribute('src');
             
             isTransitioning = false;
             
-            // Update URL hash deep-link without triggering hashchange listener
+            // Update URL hash deep-link without triggering window hashchange listener
             window.history.pushState(null, null, `#page=${currentPage}`);
         }, 400);
     };
 
-    if (elements.pageImgTransition.complete) {
+    if (inactiveImg.complete) {
         onImageLoaded();
     } else {
-        elements.pageImgTransition.onload = onImageLoaded;
+        inactiveImg.onload = onImageLoaded;
     }
 }
 
@@ -195,7 +210,7 @@ function generateThumbnails() {
         
         const img = document.createElement('img');
         img.src = getPageImageUrl(i);
-        img.loading = 'lazy'; // Let the browser handle lazy-loading for offscreen thumbs
+        img.loading = 'lazy'; // Browser handles lazy-loading
         img.alt = `Page ${i} Thumbnail`;
         
         const label = document.createElement('div');
@@ -390,20 +405,30 @@ function setupEventListeners() {
 
     // Touch Navigation for Mobile (Swipe Gestures)
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let touchEndY = 0;
     
     elements.viewerMain.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
     
     elements.viewerMain.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
         const swipeThreshold = 50; // Minimum swipe distance in pixels
         
-        if (touchEndX < touchStartX - swipeThreshold) {
-            goNext(); // Swipe left -> Next page
-        } else if (touchEndX > touchStartX + swipeThreshold) {
-            goPrev(); // Swipe right -> Prev page
+        // Ensure horizontal swipe is dominant and exceeds threshold
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX < 0) {
+                goNext(); // Swipe left -> Next page
+            } else {
+                goPrev(); // Swipe right -> Prev page
+            }
         }
     }, { passive: true });
     
