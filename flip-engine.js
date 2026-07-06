@@ -1,21 +1,22 @@
 /**
  * FlipEngine — Premium realistic page-flip animation engine
  * Canvas-based rendering with paper curl, dynamic shadows, lighting, and spring physics.
+ * FIXED: Proper background handling during transitions
  */
 (function () {
     'use strict';
 
     // ─── Easing helpers ───
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-    function easeInOutCubic(t) { return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; }
+    function easeInOutCubic(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
     class FlipEngine {
         constructor(cfg) {
-            this.viewport   = cfg.viewport;          // canvasViewport element
+            this.viewport = cfg.viewport;          // canvasViewport element
             this.getPageUrl = cfg.getPageUrl;         // (pageNum) => url
             this.totalPages = cfg.totalPages;
-            this.onComplete = cfg.onComplete || function(){};
-            this.onStart    = cfg.onStart    || function(){};
+            this.onComplete = cfg.onComplete || function () { };
+            this.onStart = cfg.onStart || function () { };
 
             // Create overlay canvas
             this.canvas = document.createElement('canvas');
@@ -25,11 +26,11 @@
             this.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
             // State
-            this.state       = 'idle';     // idle | dragging | animating
-            this.dir         = null;       // 'forward' | 'backward'
-            this.curPage     = 1;
-            this.tgtPage     = 0;
-            this.progress    = 0;          // 0‥1
+            this.state = 'idle';     // idle | dragging | animating
+            this.dir = null;       // 'forward' | 'backward'
+            this.curPage = 1;
+            this.tgtPage = 0;
+            this.progress = 0;          // 0‥1
 
             // Corner being dragged (in canvas-pixel coordinates)
             this.cx = 0; this.cy = 0;
@@ -38,7 +39,7 @@
             this.pr = null;
 
             // Image cache
-            this.imgs   = {};
+            this.imgs = {};
             this._loading = {};
 
             // RAF
@@ -46,20 +47,20 @@
 
             // Animation
             this.animStart = 0;
-            this.animDur   = 550;   // ms for programmatic flip
+            this.animDur = 550;   // ms for programmatic flip
 
             // Drag tracking
             this._isPointerDown = false;
             this._dragActive = false;
             this._startX = 0; this._startY = 0;
-            this._lastX  = 0; this._lastT  = 0;
-            this._velX   = 0;
+            this._lastX = 0; this._lastT = 0;
+            this._velX = 0;
 
             // Spring
-            this._springVel   = 0;
-            this._springTgt   = 0;
-            this._springK     = 0.10;
-            this._springDamp  = 0.80;
+            this._springVel = 0;
+            this._springTgt = 0;
+            this._springK = 0.10;
+            this._springDamp = 0.80;
 
             // Bind
             this._onMD = this._onMD.bind(this);
@@ -82,7 +83,7 @@
         flipTo(page, dir) {
             if (this.state !== 'idle') return Promise.resolve(false);
             if (page < 1 || page > this.totalPages) return Promise.resolve(false);
-            this.dir     = dir;
+            this.dir = dir;
             this.tgtPage = page;
             return new Promise(res => {
                 this._resolve = res;
@@ -122,7 +123,7 @@
         }
 
         _preload(p) {
-            for (let i = Math.max(1, p-1); i <= Math.min(this.totalPages, p+2); i++) this._load(i);
+            for (let i = Math.max(1, p - 1); i <= Math.min(this.totalPages, p + 2); i++) this._load(i);
         }
 
         /* ===========================================================
@@ -132,9 +133,9 @@
         _resize() {
             const r = this.viewport.getBoundingClientRect();
             this.vpW = r.width; this.vpH = r.height;
-            this.canvas.width  = r.width  * this.dpr;
+            this.canvas.width = r.width * this.dpr;
             this.canvas.height = r.height * this.dpr;
-            this.canvas.style.width  = r.width  + 'px';
+            this.canvas.style.width = r.width + 'px';
             this.canvas.style.height = r.height + 'px';
         }
 
@@ -150,13 +151,22 @@
             } else {
                 this.pr = { x: 40, y: 20, w: this.vpW - 80, h: this.vpH - 40 };
             }
-            // Hide underlying slides
-            this.viewport.querySelectorAll('.slide-item').forEach(s => s.style.visibility = 'hidden');
+            // FIXED: Only hide the non-active slide to prevent background showing through
+            // This keeps one slide visible at all times beneath the canvas
+            this.viewport.querySelectorAll('.slide-item').forEach(s => {
+                if (!s.classList.contains('active')) {
+                    s.style.visibility = 'hidden';
+                }
+            });
         }
 
         _hide() {
             this.canvas.style.display = 'none';
-            this.viewport.querySelectorAll('.slide-item').forEach(s => s.style.visibility = '');
+            // FIXED: Restore visibility of all slides properly
+            this.viewport.querySelectorAll('.slide-item').forEach(s => {
+                s.style.visibility = '';
+                s.style.pointerEvents = '';
+            });
         }
 
         _getPageRect() {
@@ -190,7 +200,7 @@
             const mx = (ox + cx) / 2, my = (oy + cy) / 2;
             // Normal (toward original corner = folded side)
             const vnx = ox - cx, vny = oy - cy;
-            const vl = Math.sqrt(vnx*vnx + vny*vny) || 1;
+            const vl = Math.sqrt(vnx * vnx + vny * vny) || 1;
             const nx = vnx / vl, ny = vny / vl;
             // Fold direction (perpendicular)
             const dx = -ny, dy = nx;
@@ -204,13 +214,15 @@
 
         _render() {
             const ctx = this.ctx;
-            const P   = this.pr;
+            const P = this.pr;
             if (!P) return;
 
             ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-            ctx.clearRect(0, 0, this.vpW, this.vpH);
+            // FIXED: Use white background instead of transparent to prevent viewport bg showing
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, this.vpW, this.vpH);
 
-            const curImg  = this.imgs[this.curPage];
+            const curImg = this.imgs[this.curPage];
             const nextImg = this.imgs[this.tgtPage];
             if (!curImg || !nextImg) return;
 
@@ -249,7 +261,7 @@
                 ctx.rect(P.x, P.y, P.w, P.h);
                 ctx.clip();
                 ctx.drawImage(nextImg, P.x, P.y, P.w, P.h);
-                
+
                 // Shadow cast onto next page by the fold
                 const shadowW = Math.min(P.w * 0.15, 60);
                 const gReveal = ctx.createLinearGradient(P.x + x_left, 0, P.x + x_left + shadowW, 0);
@@ -284,7 +296,7 @@
                     const srcX = (x_left + R * Math.PI) * (imgW / W);
                     const srcW = flatBackW * (imgW / W);
                     ctx.drawImage(curImg, srcX, 0, srcW, imgH, P.x + x_left + R * Math.PI, P.y, flatBackW, P.h);
-                    
+
                     // Shadow cast by curl onto reflected flat back page
                     const gBackFlat = ctx.createLinearGradient(P.x + x_left + R * Math.PI, 0, P.x + x_left + R * Math.PI - shadowW, 0);
                     gBackFlat.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
@@ -300,7 +312,7 @@
                     const sliceW = 1;
                     const startX = Math.floor(P.x + x_left);
                     const endX = Math.ceil(P.x + x_f);
-                    
+
                     // Curve vertical bending parameters
                     const B_top = 10 * Math.sin(t * Math.PI);
                     const B_bottom = 50 * Math.sin(t * Math.PI);
@@ -309,7 +321,7 @@
                         const dx = x_col - startX;
                         let pct = dx / R;
                         pct = Math.max(0, Math.min(1, pct));
-                        
+
                         const theta_f = Math.asin(pct);
                         const theta_b = Math.PI - theta_f;
 
@@ -320,7 +332,7 @@
                         // Top & Bottom vertical offsets for front and back
                         const dy_t_f = B_top * (z_f / (2 * R));
                         const dy_b_f = B_bottom * (z_f / (2 * R));
-                        
+
                         const dy_t_b = B_top * (z_b / (2 * R));
                         const dy_b_b = B_bottom * (z_b / (2 * R));
 
@@ -330,7 +342,7 @@
                             const y_t = P.y + dy_t_b;
                             const y_b = P.y + P.h - dy_b_b;
                             const h_s = y_b - y_t;
-                            
+
                             const srcX = u_b * (imgW / W);
                             ctx.drawImage(curImg, srcX, 0, 1, imgH, x_col, y_t, sliceW, h_s);
 
@@ -365,7 +377,7 @@
                             ctx.fillRect(x_col, y_t, sliceW, h_s);
                         }
                     }
-                    
+
                     // Draw fold edge accent line
                     ctx.save();
                     ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
@@ -421,7 +433,7 @@
 
                     const srcW = flatBackW * (imgW / W);
                     ctx.drawImage(curImg, 0, 0, srcW, imgH, P.x + (x_right - flatBackW), P.y, flatBackW, P.h);
-                    
+
                     // Shadow cast by curl onto reflected flat back page
                     const gBackFlat = ctx.createLinearGradient(P.x + x_right - R * Math.PI, 0, P.x + x_right - R * Math.PI + shadowW, 0);
                     gBackFlat.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
@@ -531,7 +543,7 @@
             const cur = this.curPage;
             const tot = this.totalPages;
             const tRight = Math.round(maxT * ((tot - cur) / tot));
-            const tLeft  = Math.round(maxT * ((cur - 1) / tot));
+            const tLeft = Math.round(maxT * ((cur - 1) / tot));
 
             // Draw left stack
             if (tLeft > 0) {
@@ -568,8 +580,8 @@
 
         _beginProgrammatic() {
             this._show();
-            this.state     = 'animating';
-            this.progress  = 0;
+            this.state = 'animating';
+            this.progress = 0;
             this.animStart = performance.now();
             this.onStart(this.dir);
             this._tickProgrammatic();
@@ -642,12 +654,12 @@
 
         _listen() {
             const vp = this.viewport;
-            vp.addEventListener('mousedown',  this._onMD);
+            vp.addEventListener('mousedown', this._onMD);
             document.addEventListener('mousemove', this._onMM);
-            document.addEventListener('mouseup',   this._onMU);
+            document.addEventListener('mouseup', this._onMU);
             vp.addEventListener('touchstart', this._onTS, { passive: false });
             document.addEventListener('touchmove', this._onTM, { passive: false });
-            document.addEventListener('touchend',  this._onTE);
+            document.addEventListener('touchend', this._onTE);
         }
 
         _pos(cx, cy) {
@@ -683,10 +695,10 @@
             if (!this.pr) return;
             const zone = this._zone(p.x, p.y);
             if (!zone) return;
-            if (zone === 'forward'  && this.curPage >= this.totalPages) return;
+            if (zone === 'forward' && this.curPage >= this.totalPages) return;
             if (zone === 'backward' && this.curPage <= 1) return;
 
-            this.dir     = zone;
+            this.dir = zone;
             this.tgtPage = zone === 'forward' ? this.curPage + 1 : this.curPage - 1;
 
             // Ensure images ready
@@ -694,11 +706,11 @@
                 this._load(this.tgtPage); return;
             }
 
-            this._isPointerDown  = true;
+            this._isPointerDown = true;
             this._dragActive = false;
             this._startX = p.x; this._startY = p.y;
-            this._lastX  = p.x; this._lastT  = performance.now();
-            this._velX   = 0;
+            this._lastX = p.x; this._lastT = performance.now();
+            this._velX = 0;
             if (e.cancelable) e.preventDefault();
         }
 
@@ -764,13 +776,13 @@
             const progThresh = 0.38;
             const shouldComplete =
                 prog > progThresh ||
-                (this.dir === 'forward'  && this._velX < -velThresh) ||
-                (this.dir === 'backward' && this._velX >  velThresh);
+                (this.dir === 'forward' && this._velX < -velThresh) ||
+                (this.dir === 'backward' && this._velX > velThresh);
 
-            this.state       = 'animating';
-            this.progress    = prog;
-            this._springVel  = 0;
-            this._springTgt  = shouldComplete ? 1.0 : 0.0;
+            this.state = 'animating';
+            this.progress = prog;
+            this._springVel = 0;
+            this._springTgt = shouldComplete ? 1.0 : 0.0;
             this._tickSpring();
         }
     }
