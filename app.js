@@ -146,10 +146,11 @@ function navigateToPage(targetPage, direction) {
     const inactiveSlideEl = inactiveSlide === 'A' ? elements.slideA : elements.slideB;
     const inactiveImg = inactiveSlide === 'A' ? elements.pageImgA : elements.pageImgB;
     
-    // Pre-load the target image in the hidden inactive slide
-    inactiveImg.src = getPageImageUrl(targetPage);
-    
+    let loaded = false;
     const onImageLoaded = () => {
+        if (loaded) return;
+        loaded = true;
+        
         currentPage = targetPage;
         updateUI();
         
@@ -176,10 +177,6 @@ function navigateToPage(targetPage, direction) {
             activeSlideEl.className = 'slide-item';
             inactiveSlideEl.className = 'slide-item active';
             
-            // Clear image sources in inactive slide to free memory
-            const oldActiveImg = activeSlide === 'A' ? elements.pageImgB : elements.pageImgA;
-            oldActiveImg.removeAttribute('src');
-            
             isTransitioning = false;
             
             // Update URL hash deep-link without triggering window hashchange listener
@@ -187,10 +184,22 @@ function navigateToPage(targetPage, direction) {
         }, 400);
     };
 
+    // Clean up old handlers to prevent memory leaks or duplicate triggers
+    inactiveImg.onload = null;
+    inactiveImg.onerror = null;
+
+    // Attach handlers
+    inactiveImg.onload = onImageLoaded;
+    inactiveImg.onerror = onImageLoaded; // Proceed anyway on error to prevent locking
+    
+    // Set target image source
+    inactiveImg.src = getPageImageUrl(targetPage);
+    
     if (inactiveImg.complete) {
         onImageLoaded();
     } else {
-        inactiveImg.onload = onImageLoaded;
+        // Safe fallback timeout (150ms) to ensure transition always triggers and doesn't get stuck
+        setTimeout(onImageLoaded, 150);
     }
 }
 
