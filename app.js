@@ -44,6 +44,9 @@ const elements = {
     toastContainer: document.getElementById('toastContainer')
 };
 
+// Flip animation duration in ms (matches CSS --flip-duration)
+const FLIP_DURATION = 600;
+
 // Get WebP page path
 function getPageImageUrl(pageNum) {
     return `pages/page-${pageNum}.webp`;
@@ -86,7 +89,9 @@ function initDocument() {
     elements.pageNumberInput.max = TOTAL_PAGES;
     
     // Set download PDF button pointing to your CDN hosted PDF
-    elements.downloadPdfBtn.href = 'https://xklbw4viyock6snd.public.blob.vercel-storage.com/Booklet%202026.pdf';
+    if (elements.downloadPdfBtn) {
+        elements.downloadPdfBtn.href = 'https://xklbw4viyock6snd.public.blob.vercel-storage.com/Booklet%202026.pdf';
+    }
     
     // Build Sidebar thumbnails
     generateThumbnails();
@@ -104,6 +109,48 @@ function initDocument() {
     currentPage = startPage;
     updateUI();
     renderCurrentPageDirectly();
+    
+    // Preload adjacent pages for smoother flipping
+    preloadAdjacentPages(currentPage);
+    
+    // Auto-enter fullscreen on first interaction (optional: auto-request)
+    requestAutoFullscreen();
+}
+
+// -------------------------------------------------------------
+// Preload images for smooth flipping
+// -------------------------------------------------------------
+function preloadAdjacentPages(page) {
+    const toPreload = [page - 1, page + 1, page + 2];
+    toPreload.forEach(p => {
+        if (p >= 1 && p <= TOTAL_PAGES) {
+            const img = new Image();
+            img.src = getPageImageUrl(p);
+        }
+    });
+}
+
+// -------------------------------------------------------------
+// Auto Fullscreen
+// -------------------------------------------------------------
+function requestAutoFullscreen() {
+    // Request fullscreen on the app element for immersive experience
+    const requestFS = () => {
+        const el = elements.app;
+        if (el.requestFullscreen) {
+            el.requestFullscreen().catch(() => {});
+        } else if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+        }
+        document.removeEventListener('click', requestFS);
+        document.removeEventListener('keydown', requestFS);
+        document.removeEventListener('touchstart', requestFS);
+    };
+    
+    // Fullscreen requires a user gesture, so we attach to first interaction
+    document.addEventListener('click', requestFS, { once: true });
+    document.addEventListener('keydown', requestFS, { once: true });
+    document.addEventListener('touchstart', requestFS, { once: true });
 }
 
 // -------------------------------------------------------------
@@ -133,7 +180,7 @@ function applyZoom() {
 }
 
 // -------------------------------------------------------------
-// Carousel Slide Transitions (Flicker-free A/B Swap)
+// 3D Page Flip Transitions
 // -------------------------------------------------------------
 function navigateToPage(targetPage, direction) {
     if (isTransitioning) return;
@@ -154,43 +201,50 @@ function navigateToPage(targetPage, direction) {
         currentPage = targetPage;
         updateUI();
         
-        // Mark both slides active and visible during transition
+        // Reset classes and make both visible
         activeSlideEl.className = 'slide-item active';
         inactiveSlideEl.className = 'slide-item active';
         
-        // Trigger hardware-accelerated CSS animations
+        // Force reflow for animation to trigger
+        activeSlideEl.offsetHeight;
+        inactiveSlideEl.offsetHeight;
+        
+        // Apply 3D flip animation classes
         if (direction === 'next') {
-            activeSlideEl.classList.add('slide-out-left');
-            inactiveSlideEl.classList.add('slide-in-right');
+            activeSlideEl.classList.add('flip-out-next');
+            inactiveSlideEl.classList.add('flip-in-next');
         } else if (direction === 'prev') {
-            activeSlideEl.classList.add('slide-out-right');
-            inactiveSlideEl.classList.add('slide-in-left');
+            activeSlideEl.classList.add('flip-out-prev');
+            inactiveSlideEl.classList.add('flip-in-prev');
         }
         
-        // Wait for CSS slide animation to finish (400ms)
+        // Wait for flip animation to finish
         setTimeout(() => {
             // Swap active slide pointer
             activeSlide = inactiveSlide;
-            applyZoom(); // Apply current zoom settings to the newly active image
+            applyZoom();
             
-            // Set final inactive/active classes
+            // Set final classes
             activeSlideEl.className = 'slide-item';
             inactiveSlideEl.className = 'slide-item active';
             
             isTransitioning = false;
             
-            // Update URL hash deep-link without triggering window hashchange listener
+            // Deep-link
             window.history.pushState(null, null, `#page=${currentPage}`);
-        }, 400);
+            
+            // Preload next pages
+            preloadAdjacentPages(currentPage);
+        }, FLIP_DURATION);
     };
 
-    // Clean up old handlers to prevent memory leaks or duplicate triggers
+    // Clean up old handlers
     inactiveImg.onload = null;
     inactiveImg.onerror = null;
 
     // Attach handlers
     inactiveImg.onload = onImageLoaded;
-    inactiveImg.onerror = onImageLoaded; // Proceed anyway on error to prevent locking
+    inactiveImg.onerror = onImageLoaded;
     
     // Set target image source
     inactiveImg.src = getPageImageUrl(targetPage);
@@ -198,8 +252,8 @@ function navigateToPage(targetPage, direction) {
     if (inactiveImg.complete) {
         onImageLoaded();
     } else {
-        // Safe fallback timeout (150ms) to ensure transition always triggers and doesn't get stuck
-        setTimeout(onImageLoaded, 150);
+        // Safe fallback timeout
+        setTimeout(onImageLoaded, 200);
     }
 }
 
@@ -219,7 +273,7 @@ function generateThumbnails() {
         
         const img = document.createElement('img');
         img.src = getPageImageUrl(i);
-        img.loading = 'lazy'; // Browser handles lazy-loading
+        img.loading = 'lazy';
         img.alt = `Page ${i} Thumbnail`;
         
         const label = document.createElement('div');
@@ -312,6 +366,34 @@ function goPrev() {
 }
 
 // -------------------------------------------------------------
+// Fullscreen helpers
+// -------------------------------------------------------------
+function enterFullscreen() {
+    const el = elements.app;
+    if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+    } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+    } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+    }
+}
+
+function exitFullscreen() {
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+    }
+}
+
+function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+}
+
+// -------------------------------------------------------------
 // Event Listeners Setup
 // -------------------------------------------------------------
 function setupEventListeners() {
@@ -375,24 +457,28 @@ function setupEventListeners() {
         applyZoom();
     });
     
-    // Fullscreen Mode
+    // Fullscreen Mode – toggle on the whole app
     elements.fullscreenBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            elements.viewerMain.requestFullscreen().then(() => {
-                elements.fullscreenBtn.querySelector('i').className = 'fa-solid fa-minimize';
-            }).catch(err => {
-                showToast('Fullscreen mode not supported or allowed', 'error');
-            });
+        if (!isFullscreen()) {
+            enterFullscreen();
         } else {
-            document.exitFullscreen();
-            elements.fullscreenBtn.querySelector('i').className = 'fa-solid fa-maximize';
+            exitFullscreen();
         }
     });
     
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) {
-            elements.fullscreenBtn.querySelector('i').className = 'fa-solid fa-maximize';
-        }
+    // Listen for fullscreen changes
+    const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'];
+    fsEvents.forEach(evt => {
+        document.addEventListener(evt, () => {
+            const icon = elements.fullscreenBtn.querySelector('i');
+            if (isFullscreen()) {
+                icon.className = 'fa-solid fa-minimize';
+                elements.app.classList.add('is-fullscreen');
+            } else {
+                icon.className = 'fa-solid fa-maximize';
+                elements.app.classList.remove('is-fullscreen');
+            }
+        });
     });
     
     // Keyboard Navigation
@@ -401,8 +487,10 @@ function setupEventListeners() {
         
         if (e.key === 'ArrowRight' || e.key === ' ') {
             goNext();
+            e.preventDefault();
         } else if (e.key === 'ArrowLeft') {
             goPrev();
+            e.preventDefault();
         } else if (e.key === '=' || (e.key === '+' && e.ctrlKey)) {
             elements.zoomInBtn.click();
             e.preventDefault();
@@ -414,6 +502,8 @@ function setupEventListeners() {
             e.preventDefault();
         } else if (e.key === 'f' || e.key === 'F') {
             elements.fullscreenBtn.click();
+        } else if (e.key === 'Escape') {
+            // Escape is handled by browser for fullscreen
         }
     });
     
@@ -483,6 +573,25 @@ function setupEventListeners() {
             }
         }
     });
+    
+    // Mouse wheel page navigation (scroll to flip)
+    let wheelTimeout = null;
+    elements.viewerMain.addEventListener('wheel', (e) => {
+        if (isTransitioning) return;
+        e.preventDefault();
+        
+        if (wheelTimeout) return; // Throttle wheel events
+        
+        wheelTimeout = setTimeout(() => {
+            wheelTimeout = null;
+        }, 700);
+        
+        if (e.deltaY > 0 || e.deltaX > 0) {
+            goNext();
+        } else if (e.deltaY < 0 || e.deltaX < 0) {
+            goPrev();
+        }
+    }, { passive: false });
 }
 
 // Initialize Application

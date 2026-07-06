@@ -1,4 +1,4 @@
-/* Clean Minimalist Styling (Thirunaal August 5 Theme, UI Friendly) */
+/* Thirunaal Booklet – Fullscreen Flipbook Theme */
 :root {
     --bg-main: #fdfbf7;
     --bg-canvas-area: #f5f2eb;
@@ -6,50 +6,50 @@
     --text-main: #292524;
     --text-secondary: #57534e;
     --text-muted: #a8a29e;
-    
+
     --button-bg: #ffffff;
     --button-hover-bg: #fdfcfb;
     --button-active-bg: #f5f2eb;
     --button-border: #d6d3d1;
-    
+
     --accent: #991b1b;
     --accent-hover: #7f1d1d;
     --gold-color: #b45309;
-    
+
     --sidebar-width: 220px;
     --header-height: 50px;
-    --footer-height: 56px;
-    
+    --footer-height: 52px;
+
     --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* Flip animation timing */
+    --flip-duration: 0.6s;
+    --flip-easing: cubic-bezier(0.645, 0.045, 0.355, 1.000);
 }
 
-/* Reset and Core Layout */
-* {
+/* Reset */
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
 body {
     font-family: var(--font-family);
     background-color: var(--bg-main);
     color: var(--text-main);
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-}
-
-.app-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    width: 100vw;
 }
 
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
 }
 ::-webkit-scrollbar-track {
     background: #fdfbf7;
@@ -62,41 +62,15 @@ body {
     background: #a8a29e;
 }
 
-/* Interactive Elements */
-button {
-    font-family: inherit;
-    cursor: pointer;
-    border: 1px solid var(--button-border);
-    background: var(--button-bg);
-    color: var(--text-main);
-    outline: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: background 0.15s ease, border-color 0.15s ease;
+/* ===== APP LAYOUT ===== */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
 }
 
-button:hover {
-    background: var(--button-hover-bg);
-    border-color: #a8a29e;
-}
-
-button:active {
-    background: var(--button-active-bg);
-}
-
-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: #f5f2eb;
-    border-color: #e7e2d8;
-}
-
-/* Header */
+/* ===== HEADER ===== */
 .app-header {
     height: var(--header-height);
     background: #ffffff;
@@ -104,14 +78,15 @@ button:disabled {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 20px;
     z-index: 100;
+    flex-shrink: 0;
 }
 
 .header-logo {
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 8px;
 }
 
 .brand-main {
@@ -143,34 +118,57 @@ button:disabled {
     gap: 8px;
 }
 
-/* Icon button override */
+/* Buttons */
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    color: var(--text-main);
+    outline: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+button:hover {
+    background: var(--button-hover-bg);
+    border-color: #a8a29e;
+}
+
+button:active {
+    background: var(--button-active-bg);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #f5f2eb;
+    border-color: #e7e2d8;
+}
+
 .icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     font-size: 0.9rem;
+    border-radius: 6px;
 }
 
 .action-btn {
     font-weight: 500;
 }
 
-.primary-btn {
-    background: var(--accent);
-    color: #ffffff;
-    border-color: var(--accent);
-}
-
-.primary-btn:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-}
-
 .share-btn {
     font-size: 0.85rem;
 }
 
-/* Workspace */
+/* ===== WORKSPACE ===== */
 .workspace-container {
     display: flex;
     flex: 1;
@@ -179,15 +177,16 @@ button:disabled {
     overflow: hidden;
 }
 
-/* Sidebar */
+/* ===== SIDEBAR ===== */
 .thumbnail-sidebar {
     width: var(--sidebar-width);
     background: #ffffff;
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    transition: width 0.2s ease, transform 0.2s ease;
+    transition: width 0.25s ease, transform 0.25s ease;
     z-index: 80;
+    flex-shrink: 0;
 }
 
 .thumbnail-sidebar.collapsed {
@@ -197,15 +196,15 @@ button:disabled {
 }
 
 .sidebar-header {
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border-color);
 }
 
 .sidebar-header h3 {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
 }
 
 .thumbnail-container {
@@ -219,14 +218,14 @@ button:disabled {
 
 .thumbnail-item {
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     background: #ffffff;
     padding: 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .thumbnail-item:hover {
@@ -247,22 +246,23 @@ button:disabled {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    border-radius: 3px;
 }
 
-.thumbnail-wrapper canvas {
+.thumbnail-wrapper img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
 }
 
 .thumbnail-label {
-    margin-top: 4px;
+    margin-top: 5px;
     font-size: 0.7rem;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     font-weight: 500;
 }
 
-/* Viewer Main Area */
+/* ===== VIEWER MAIN ===== */
 .viewer-main {
     flex: 1;
     position: relative;
@@ -270,55 +270,11 @@ button:disabled {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     padding: 16px;
 }
 
-/* Upload Container */
-.upload-container {
-    max-width: 440px;
-    width: 100%;
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 32px;
-    text-align: center;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    z-index: 10;
-}
-
-.upload-container.drag-over {
-    border-color: #18181b;
-    background: #fafafa;
-}
-
-.upload-icon {
-    font-size: 2rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-}
-
-.upload-container h2 {
-    font-size: 1.2rem;
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.upload-instructions {
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-.upload-hint {
-    margin-top: 20px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-muted);
-    font-size: 0.75rem;
-}
-
-/* Carousel Layout with Absolute Navigation Overlays */
+/* ===== CAROUSEL ===== */
 .carousel-wrapper {
     position: relative;
     width: 100%;
@@ -326,41 +282,88 @@ button:disabled {
     display: flex;
     align-items: center;
     justify-content: center;
+    perspective: 2000px;
 }
 
+/* ===== NAVIGATION ARROWS (Thick gray chevron – matches the user's image) ===== */
 .carousel-nav-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
+    z-index: 100;
+    /* Remove all default button styles */
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    /* The arrow itself */
+    width: 48px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    z-index: 100;
-    transition: background 0.15s ease, opacity 0.15s ease;
-    padding: 0;
-    font-size: 0.95rem;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    opacity: 0.5;
 }
 
 .carousel-nav-btn:hover {
-    background: var(--button-hover-bg);
-    border-color: #a8a29e;
+    opacity: 0.85;
+    background: none;
+    border: none;
+    transform: translateY(-50%) scale(1.08);
+}
+
+.carousel-nav-btn:active {
+    transform: translateY(-50%) scale(0.95);
+    background: none;
+}
+
+.carousel-nav-btn:disabled {
+    opacity: 0.1;
+    cursor: not-allowed;
+    background: none;
+    border: none;
+    transform: translateY(-50%);
+}
+
+/* Hide the FontAwesome icon – we use custom SVG chevrons */
+.carousel-nav-btn i {
+    display: none;
+}
+
+/* Custom thick chevron arrows via CSS pseudo-elements */
+.carousel-nav-btn::before {
+    content: '';
+    display: block;
+    width: 22px;
+    height: 40px;
+    border-style: solid;
+    border-color: #8a8a8a;
+    border-width: 4px 4px 0 0;
 }
 
 .carousel-nav-btn.prev {
-    left: 16px;
+    left: 18px;
+}
+
+.carousel-nav-btn.prev::before {
+    border-width: 0 0 4px 4px;
+    transform: rotate(45deg);
+    margin-left: 8px;
 }
 
 .carousel-nav-btn.next {
-    right: 16px;
+    right: 18px;
 }
 
+.carousel-nav-btn.next::before {
+    border-width: 4px 4px 0 0;
+    transform: rotate(45deg);
+    margin-right: 8px;
+}
+
+/* ===== CANVAS / SLIDES ===== */
 .canvas-viewport {
     flex: 1;
     height: 100%;
@@ -378,6 +381,7 @@ button:disabled {
     display: flex;
     align-items: center;
     justify-content: center;
+    transform-style: preserve-3d;
 }
 
 .slide-item {
@@ -392,6 +396,8 @@ button:disabled {
     pointer-events: none;
     opacity: 0;
     z-index: 10;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
 }
 
 .slide-item.active {
@@ -404,13 +410,17 @@ button:disabled {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--border-color);
-    border-radius: 2px;
-    background: #ffffff;
     max-width: 100%;
     max-height: 100%;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
 }
+
+
 
 .image-wrapper img {
     max-width: 100%;
@@ -420,48 +430,150 @@ button:disabled {
     object-fit: contain;
 }
 
-#pdfCanvasCurrentRight, #pdfCanvasTransitionRight {
-    border-left: 1px solid #e4e4e7;
+/* ===== 3D PAGE FLIP ANIMATIONS ===== */
+
+/* Next page: current page flips away to the left (like turning a real page) */
+.slide-item.flip-out-next {
+    animation: flipOutNext var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: left center;
+    z-index: 30;
 }
 
-/* Slick Minimal Slide Animations */
+/* Next page: new page appears from behind */
+.slide-item.flip-in-next {
+    animation: flipInNext var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: right center;
+    z-index: 25;
+}
+
+/* Prev page: current page flips away to the right */
+.slide-item.flip-out-prev {
+    animation: flipOutPrev var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: right center;
+    z-index: 30;
+}
+
+/* Prev page: new page appears from behind */
+.slide-item.flip-in-prev {
+    animation: flipInPrev var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: left center;
+    z-index: 25;
+}
+
+@keyframes flipOutNext {
+    0% {
+        transform: perspective(2000px) rotateY(0deg);
+        opacity: 1;
+        filter: brightness(1);
+    }
+    30% {
+        filter: brightness(0.92);
+    }
+    100% {
+        transform: perspective(2000px) rotateY(-90deg);
+        opacity: 0;
+        filter: brightness(0.7);
+    }
+}
+
+@keyframes flipInNext {
+    0% {
+        transform: perspective(2000px) rotateY(90deg);
+        opacity: 0;
+        filter: brightness(0.7);
+    }
+    40% {
+        opacity: 1;
+    }
+    100% {
+        transform: perspective(2000px) rotateY(0deg);
+        opacity: 1;
+        filter: brightness(1);
+    }
+}
+
+@keyframes flipOutPrev {
+    0% {
+        transform: perspective(2000px) rotateY(0deg);
+        opacity: 1;
+        filter: brightness(1);
+    }
+    30% {
+        filter: brightness(0.92);
+    }
+    100% {
+        transform: perspective(2000px) rotateY(90deg);
+        opacity: 0;
+        filter: brightness(0.7);
+    }
+}
+
+@keyframes flipInPrev {
+    0% {
+        transform: perspective(2000px) rotateY(-90deg);
+        opacity: 0;
+        filter: brightness(0.7);
+    }
+    40% {
+        opacity: 1;
+    }
+    100% {
+        transform: perspective(2000px) rotateY(0deg);
+        opacity: 1;
+        filter: brightness(1);
+    }
+}
+
+/* Shadow overlay that appears during flip to simulate page shadow */
+.slide-item.flip-out-next .image-wrapper::after,
+.slide-item.flip-in-next .image-wrapper::after,
+.slide-item.flip-out-prev .image-wrapper::after,
+.slide-item.flip-in-prev .image-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.15) 0%,
+        rgba(0,0,0,0) 30%,
+        rgba(0,0,0,0) 70%,
+        rgba(0,0,0,0.15) 100%
+    );
+    pointer-events: none;
+    z-index: 10;
+    animation: shadowPulse var(--flip-duration) ease-in-out forwards;
+}
+
+@keyframes shadowPulse {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Keep old slide classes for backward compat (legacy) – just map them */
 .slide-item.slide-out-left {
-    animation: slideOutLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: flipOutNext var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: left center;
+    z-index: 30;
 }
-
 .slide-item.slide-in-right {
-    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: flipInNext var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: right center;
+    z-index: 25;
 }
-
 .slide-item.slide-out-right {
-    animation: slideOutRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: flipOutPrev var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: right center;
+    z-index: 30;
 }
-
 .slide-item.slide-in-left {
-    animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: flipInPrev var(--flip-duration) var(--flip-easing) forwards;
+    transform-origin: left center;
+    z-index: 25;
 }
 
-@keyframes slideOutLeft {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(-20px); opacity: 0; }
-}
-
-@keyframes slideInRight {
-    from { transform: translateX(20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideOutRight {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(20px); opacity: 0; }
-}
-
-@keyframes slideInLeft {
-    from { transform: translateX(-20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-/* Floating indicator */
+/* ===== PAGE INDICATOR ===== */
 .page-indicator-overlay {
     position: absolute;
     top: 12px;
@@ -472,12 +584,11 @@ button:disabled {
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text-secondary);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     z-index: 60;
     pointer-events: none;
 }
 
-/* Loading Spinner */
+/* ===== LOADING ===== */
 .loading-overlay {
     position: absolute;
     inset: 0;
@@ -511,7 +622,7 @@ button:disabled {
     color: var(--text-secondary);
 }
 
-/* Footer / Toolbar */
+/* ===== FOOTER ===== */
 .app-footer {
     height: var(--footer-height);
     background: #ffffff;
@@ -521,12 +632,13 @@ button:disabled {
     align-items: center;
     padding: 0 16px;
     z-index: 100;
+    flex-shrink: 0;
 }
 
 .footer-section {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .page-selector {
@@ -534,7 +646,7 @@ button:disabled {
     align-items: center;
     gap: 6px;
     border: 1px solid var(--border-color);
-    padding: 2px 8px;
+    padding: 2px 10px;
     border-radius: 4px;
     font-size: 0.85rem;
 }
@@ -547,6 +659,7 @@ button:disabled {
     font-size: 0.85rem;
     font-weight: 600;
     text-align: center;
+    color: var(--text-main);
 }
 
 .page-selector input::-webkit-outer-spin-button,
@@ -566,7 +679,7 @@ button:disabled {
     text-align: center;
 }
 
-/* Toast */
+/* ===== TOAST ===== */
 .toast-container {
     position: fixed;
     bottom: 16px;
@@ -593,7 +706,7 @@ button:disabled {
     color: var(--text-main);
     transform: translateY(10px);
     opacity: 0;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .toast.show {
@@ -616,16 +729,12 @@ button:disabled {
     display: none !important;
 }
 
-/* Interactive Paper Curl Effect for the Cover Page */
+/* ===== COVER PAGE CURL ===== */
 .image-wrapper.has-cover-curl {
     position: relative;
     overflow: hidden;
-    background: transparent;
-    border: none;
-    box-shadow: none;
 }
 
-/* The folded paper backing corner (Curl flap) */
 .image-wrapper.has-cover-curl::after {
     content: '';
     position: absolute;
@@ -633,79 +742,88 @@ button:disabled {
     right: -1px;
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, 
-        rgba(0,0,0,0) 0%, 
-        rgba(0,0,0,0) 45%, 
-        rgba(0,0,0,0.15) 46%, 
-        rgba(0,0,0,0.2) 48%, 
-        rgba(0,0,0,0.05) 50%, 
-        #fbfbfb 51%, 
-        #eae6df 75%, 
-        #ffffff 100%
+    background: linear-gradient(135deg,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0) 45%,
+        rgba(0,0,0,0.2) 46%,
+        rgba(0,0,0,0.25) 48%,
+        rgba(0,0,0,0.06) 50%,
+        #f0ece4 51%,
+        #d6d1c7 75%,
+        #f5f0e8 100%
     );
-    box-shadow: -4px -4px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: -4px -4px 10px rgba(0, 0, 0, 0.2);
     z-index: 30;
     pointer-events: none;
-    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     clip-path: polygon(100% 0, 0 100%, 100% 100%);
     -webkit-clip-path: polygon(100% 0, 0 100%, 100% 100%);
 }
 
-/* Clip the image bottom-right corner to make space for the curl backing */
 .image-wrapper.has-cover-curl img {
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
     -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
-    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
-    transition: clip-path 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+    transition: clip-path 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Hover Interactivity: Lift the page corner slightly */
 .image-wrapper.has-cover-curl:hover::after {
-    width: 75px;
-    height: 75px;
+    width: 80px;
+    height: 80px;
 }
 
 .image-wrapper.has-cover-curl:hover img {
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 75px), calc(100% - 75px) 100%, 0 100%);
-    -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 75px), calc(100% - 75px) 100%, 0 100%);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 80px), calc(100% - 80px) 100%, 0 100%);
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 80px), calc(100% - 80px) 100%, 0 100%);
 }
 
-/* Responsive Mobile Optimization */
+
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     :root {
         --sidebar-width: 200px;
-        --header-height: 48px;
-        --footer-height: 52px;
+        --header-height: 46px;
+        --footer-height: 48px;
     }
-    
+
     .action-btn span {
         display: none;
     }
-    
-    /* Overlay arrows for mobile (floating on top of page edges) */
+
     .carousel-nav-btn {
         width: 36px;
-        height: 36px;
-        background: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        border-color: rgba(0, 0, 0, 0.08);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: 60px;
     }
-    
+
+    .carousel-nav-btn::before {
+        width: 16px;
+        height: 28px;
+        border-width: 3px;
+    }
+
     .carousel-nav-btn.prev {
         left: 8px;
     }
-    
+
     .carousel-nav-btn.next {
         right: 8px;
     }
-    
+
+    .carousel-nav-btn.prev::before {
+        border-width: 0 0 3px 3px;
+        margin-left: 5px;
+    }
+
+    .carousel-nav-btn.next::before {
+        border-width: 3px 3px 0 0;
+        margin-right: 5px;
+    }
+
     .zoom-section {
         display: none;
     }
-    
-    /* Floating Sidebar on Mobile (drawer overlay) */
+
     .thumbnail-sidebar {
         position: absolute;
         left: 0;
@@ -716,46 +834,70 @@ button:disabled {
         z-index: 200;
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .thumbnail-sidebar.collapsed {
         transform: translateX(-100%);
         width: var(--sidebar-width);
         border-right: none;
     }
-    
-    /* Maximize image display area on mobile */
+
     .viewer-main {
-        padding: 8px;
+        padding: 0;
     }
-    
-    .carousel-wrapper {
-        gap: 0;
-    }
-    
+
     .image-wrapper {
         width: 100%;
         height: auto;
-        max-height: calc(100vh - var(--header-height) - var(--footer-height) - 16px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        max-height: calc(100vh - var(--header-height) - var(--footer-height));
+        border-radius: 0;
     }
-    
+
     .image-wrapper img {
         width: 100%;
         height: auto;
-        max-height: calc(100vh - var(--header-height) - var(--footer-height) - 16px);
+        max-height: calc(100vh - var(--header-height) - var(--footer-height));
         object-fit: contain;
     }
-    
-    /* Footer layout compression for mobile */
+
     .app-footer {
         padding: 0 10px;
     }
-    
+
     .footer-section {
-        gap: 4px;
+        gap: 3px;
     }
-    
+
     button {
-        padding: 6px 10px;
+        padding: 5px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .carousel-nav-btn {
+        width: 30px;
+        height: 50px;
+    }
+
+    .carousel-nav-btn::before {
+        width: 12px;
+        height: 22px;
+        border-width: 2.5px;
+    }
+
+    .carousel-nav-btn.prev {
+        left: 4px;
+    }
+    .carousel-nav-btn.next {
+        right: 4px;
+    }
+
+    .carousel-nav-btn.prev::before {
+        border-width: 0 0 2.5px 2.5px;
+        margin-left: 4px;
+    }
+
+    .carousel-nav-btn.next::before {
+        border-width: 2.5px 2.5px 0 0;
+        margin-right: 4px;
     }
 }
