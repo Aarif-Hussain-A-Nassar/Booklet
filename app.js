@@ -272,6 +272,23 @@ function updateUI() {
     elements.nextPageBtn.disabled = isLast;
     elements.lastPageBtn.disabled = isLast;
     
+    // Add page-curl effect to Cover Page (Page 1) only
+    const wrapperA = elements.slideA.querySelector('.image-wrapper');
+    const wrapperB = elements.slideB.querySelector('.image-wrapper');
+    
+    if (currentPage === 1) {
+        if (activeSlide === 'A') {
+            wrapperA.classList.add('has-cover-curl');
+            wrapperB.classList.remove('has-cover-curl');
+        } else {
+            wrapperB.classList.add('has-cover-curl');
+            wrapperA.classList.remove('has-cover-curl');
+        }
+    } else {
+        wrapperA.classList.remove('has-cover-curl');
+        wrapperB.classList.remove('has-cover-curl');
+    }
+    
     updateActiveThumbnail();
 }
 

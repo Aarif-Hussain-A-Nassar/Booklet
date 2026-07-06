@@ -616,6 +616,46 @@ button:disabled {
     display: none !important;
 }
 
+/* Interactive Paper Curl Effect for the Cover Page */
+.image-wrapper.has-cover-curl {
+    position: relative;
+    overflow: hidden;
+}
+
+/* The folded paper backing corner */
+.image-wrapper.has-cover-curl::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 60px 60px;
+    border-color: transparent transparent #ffffff transparent;
+    filter: drop-shadow(-3px -3px 5px rgba(0, 0, 0, 0.25));
+    z-index: 30;
+    pointer-events: none;
+    transition: border-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Clip the image bottom-right corner to make space for the curl backing */
+.image-wrapper.has-cover-curl img {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
+    transition: clip-path 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hover Interactivity: Lift the page corner slightly */
+.image-wrapper.has-cover-curl:hover::after {
+    border-width: 0 0 75px 75px;
+}
+
+.image-wrapper.has-cover-curl:hover img {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 75px), calc(100% - 75px) 100%, 0 100%);
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 75px), calc(100% - 75px) 100%, 0 100%);
+}
+
 /* Responsive Mobile Optimization */
 @media (max-width: 768px) {
     :root {
