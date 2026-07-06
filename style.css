@@ -620,6 +620,9 @@ button:disabled {
 .image-wrapper.has-cover-curl {
     position: relative;
     overflow: hidden;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 /* The folded paper backing corner (Curl flap) */
@@ -652,6 +655,7 @@ button:disabled {
 .image-wrapper.has-cover-curl img {
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
     -webkit-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 60px), calc(100% - 60px) 100%, 0 100%);
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
     transition: clip-path 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
