@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thirunaal - August 5</title>
+    <!-- Google Fonts: Cinzel, Outfit, and Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" class="app-layout">
+        <!-- Top Navigation Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <span class="brand-main">Thirunaal</span>
+                <span class="brand-sep">|</span>
+                <span class="brand-sub">August 5</span>
+            </div>
+            <div class="header-actions">
+                <button id="sidebarToggleBtn" class="icon-btn" title="Toggle Thumbnails">
+                    <i class="fa-solid fa-list-ul"></i>
+                </button>
+                <button id="shareBtn" class="action-btn share-btn">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>Share Page</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace Area -->
+        <div class="workspace-container">
+            <!-- Sidebar: Thumbnails -->
+            <aside id="thumbnailSidebar" class="thumbnail-sidebar collapsed">
+                <div class="sidebar-header">
+                    <h3>Pages</h3>
+                </div>
+                <div id="thumbnailContainer" class="thumbnail-container">
+                    <!-- Thumbnails will be dynamically loaded here -->
+                </div>
+            </aside>
+
+            <!-- Viewer Area -->
+            <main id="viewerMain" class="viewer-main">
+                <!-- Dropzone / Landing screen when no PDF is loaded -->
+                <div id="uploadContainer" class="upload-container">
+                    <div class="upload-box">
+                        <div class="upload-icon">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <h2>Open PDF Document</h2>
+                        <p class="upload-instructions">Drag and drop your PDF here, or click to browse.</p>
+                        <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;">
+                        <button id="browseBtn" class="action-btn primary-btn">Browse Files</button>
+                        <div class="upload-hint">
+                            <p>Tip: Place a PDF named <strong><code>booklet.pdf</code></strong> in this folder to load it automatically.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Carousel Viewer Screen -->
+                <div id="carouselWrapper" class="carousel-wrapper hidden">
+                    <button id="prevBtn" class="carousel-nav-btn prev" aria-label="Previous Page">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    
+                    <div id="canvasViewport" class="canvas-viewport">
+                        <!-- Dual slide wrapper for smooth transition animations -->
+                        <div id="slideContainer" class="slide-container">
+                            <div id="slideCurrent" class="slide-item active">
+                                <div class="canvas-wrapper">
+                                    <canvas id="pdfCanvasCurrent"></canvas>
+                                    <canvas id="pdfCanvasCurrentRight" class="hidden"></canvas>
+                                </div>
+                            </div>
+                            <div id="slideTransition" class="slide-item">
+                                <div class="canvas-wrapper">
+                                    <canvas id="pdfCanvasTransition"></canvas>
+                                    <canvas id="pdfCanvasTransitionRight" class="hidden"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="nextBtn" class="carousel-nav-btn next" aria-label="Next Page">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Page indicator overlay (floating) -->
+                <div id="pageIndicator" class="page-indicator-overlay hidden">
+                    Page <span id="currentPageNum">1</span> of <span id="totalPageNum">1</span>
+                </div>
+
+                <!-- Loading overlay -->
+                <div id="loadingOverlay" class="loading-overlay hidden">
+                    <div class="spinner-box">
+                        <div class="pulse-spinner"></div>
+                        <p id="loadingMessage">Loading PDF Document...</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Bottom Controller Bar -->
+        <footer id="appFooter" class="app-footer hidden">
+            <div class="footer-section navigation-section">
+                <button id="firstPageBtn" class="icon-btn" title="First Page"><i class="fa-solid fa-angles-left"></i></button>
+                <button id="prevPageBtn" class="icon-btn" title="Previous Page"><i class="fa-solid fa-angle-left"></i></button>
+                
+                <div class="page-selector">
+                    <input type="number" id="pageNumberInput" min="1" value="1">
+                    <span>/</span>
+                    <span id="totalPagesLabel">1</span>
+                </div>
+
+                <button id="nextPageBtn" class="icon-btn" title="Next Page"><i class="fa-solid fa-angle-right"></i></button>
+                <button id="lastPageBtn" class="icon-btn" title="Last Page"><i class="fa-solid fa-angles-right"></i></button>
+            </div>
+
+            <div class="footer-section zoom-section">
+                <button id="zoomOutBtn" class="icon-btn" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+                <span id="zoomLevelLabel" class="zoom-level">100%</span>
+                <button id="zoomInBtn" class="icon-btn" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+                <button id="zoomFitBtn" class="icon-btn" title="Fit to Screen"><i class="fa-solid fa-expand"></i></button>
+            </div>
+
+            <div class="footer-section settings-section">
+                <button id="viewModeToggle" class="icon-btn" title="Toggle Double Page Mode">
+                    <i class="fa-solid fa-book-open"></i>
+                </button>
+                <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen"><i class="fa-solid fa-maximize"></i></button>
+                <a id="downloadPdfBtn" class="icon-btn" title="Download Original PDF" download><i class="fa-solid fa-arrow-down-to-bracket"></i></a>
+            </div>
+        </footer>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js Global Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
