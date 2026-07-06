@@ -165,19 +165,10 @@ async function loadPDF(source, name = 'Booklet') {
     }
 }
 
-// Check for default booklet.pdf on startup
+// Check for default PDF on startup
 async function checkDefaultPdf() {
-    try {
-        const response = await fetch('booklet.pdf', { method: 'HEAD' });
-        if (response.ok) {
-            loadPDF('booklet.pdf', 'booklet.pdf');
-        } else {
-            // Default file not present, keep dropzone active
-            elements.loadingOverlay.classList.add('hidden');
-        }
-    } catch (e) {
-        elements.loadingOverlay.classList.add('hidden');
-    }
+    const defaultUrl = 'https://xklbw4viyock6snd.public.blob.vercel-storage.com/Booklet%202026.pdf';
+    loadPDF(defaultUrl, 'Booklet 2026');
 }
 
 // -------------------------------------------------------------
