@@ -812,17 +812,23 @@ button:disabled {
     }
 
     @media (max-width: 480px) {
+        .app-header {
+            padding: 0 8px;
+        }
         .brand-main {
-            font-size: 0.75rem;
+            font-size: clamp(10px, 3.6vw, 13px);
             letter-spacing: 0;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 140px;
+            overflow: visible;
+            text-overflow: clip;
+            max-width: none;
         }
         .brand-sep,
         .brand-sub {
             display: none;
+        }
+        .header-actions {
+            gap: 4px;
         }
     }
 
