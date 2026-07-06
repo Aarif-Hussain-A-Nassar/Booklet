@@ -318,25 +318,47 @@ button:disabled {
     font-size: 0.75rem;
 }
 
-/* Carousel */
+/* Carousel Layout with Absolute Navigation Overlays */
 .carousel-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
 }
 
 .carousel-nav-btn {
-    width: 36px;
-    height: 36px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    z-index: 100;
+    transition: background 0.15s ease, opacity 0.15s ease;
     padding: 0;
-    font-size: 0.85rem;
-    z-index: 50;
+    font-size: 0.95rem;
+}
+
+.carousel-nav-btn:hover {
+    background: var(--button-hover-bg);
+    border-color: #a8a29e;
+}
+
+.carousel-nav-btn.prev {
+    left: 16px;
+}
+
+.carousel-nav-btn.next {
+    right: 16px;
 }
 
 .canvas-viewport {
@@ -606,9 +628,23 @@ button:disabled {
         display: none;
     }
     
-    /* Hide desktop overlay arrows on mobile to save screen space */
+    /* Overlay arrows for mobile (floating on top of page edges) */
     .carousel-nav-btn {
-        display: none !important;
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border-color: rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .carousel-nav-btn.prev {
+        left: 8px;
+    }
+    
+    .carousel-nav-btn.next {
+        right: 8px;
     }
     
     .zoom-section {
