@@ -801,6 +801,31 @@ button:disabled {
         display: none;
     }
 
+    .brand-main {
+        font-size: 0.85rem;
+        letter-spacing: 0.02em;
+    }
+
+    .brand-sep,
+    .brand-sub {
+        font-size: 0.75rem;
+    }
+
+    @media (max-width: 480px) {
+        .brand-main {
+            font-size: 0.75rem;
+            letter-spacing: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+        .brand-sep,
+        .brand-sub {
+            display: none;
+        }
+    }
+
     .carousel-nav-btn {
         width: 36px;
         height: 36px;
