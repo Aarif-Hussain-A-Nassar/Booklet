@@ -5,6 +5,7 @@ let scale = 1.0; // Zoom scale factor
 let sidebarOpen = false;
 let isTransitioning = false;
 let activeSlide = 'A'; // Tracks which slide is currently active ('A' or 'B')
+let flipEngine = null;  // Canvas-based page flip engine
 
 // DOM Elements
 const elements = {
@@ -180,80 +181,29 @@ function applyZoom() {
 }
 
 // -------------------------------------------------------------
-// 3D Page Flip Transitions
+// Page Flip Navigation (canvas-based via FlipEngine)
 // -------------------------------------------------------------
 function navigateToPage(targetPage, direction) {
     if (isTransitioning) return;
     if (targetPage < 1 || targetPage > TOTAL_PAGES) return;
+    if (flipEngine && flipEngine.isFlipping()) return;
     
     isTransitioning = true;
     
-    const inactiveSlide = activeSlide === 'A' ? 'B' : 'A';
-    const activeSlideEl = activeSlide === 'A' ? elements.slideA : elements.slideB;
-    const inactiveSlideEl = inactiveSlide === 'A' ? elements.slideA : elements.slideB;
-    const inactiveImg = inactiveSlide === 'A' ? elements.pageImgA : elements.pageImgB;
+    const flipDir = direction === 'next' ? 'forward' : 'backward';
     
-    let loaded = false;
-    const onImageLoaded = () => {
-        if (loaded) return;
-        loaded = true;
-        
-        currentPage = targetPage;
-        updateUI();
-        
-        // Reset classes and make both visible
-        activeSlideEl.className = 'slide-item active';
-        inactiveSlideEl.className = 'slide-item active';
-        
-        // Force reflow for animation to trigger
-        activeSlideEl.offsetHeight;
-        inactiveSlideEl.offsetHeight;
-        
-        // Apply 3D flip animation classes
-        if (direction === 'next') {
-            activeSlideEl.classList.add('flip-out-next');
-            inactiveSlideEl.classList.add('flip-in-next');
-        } else if (direction === 'prev') {
-            activeSlideEl.classList.add('flip-out-prev');
-            inactiveSlideEl.classList.add('flip-in-prev');
-        }
-        
-        // Wait for flip animation to finish
-        setTimeout(() => {
-            // Swap active slide pointer
-            activeSlide = inactiveSlide;
-            applyZoom();
-            
-            // Set final classes
-            activeSlideEl.className = 'slide-item';
-            inactiveSlideEl.className = 'slide-item active';
-            
+    if (flipEngine) {
+        flipEngine.flipTo(targetPage, flipDir).then(success => {
+            // State is updated via onComplete callback
             isTransitioning = false;
-            
-            // Deep-link
-            window.history.pushState(null, null, `#page=${currentPage}`);
-            
-            // Preload next pages
-            preloadAdjacentPages(currentPage);
-        }, FLIP_DURATION);
-    };
-
-    // Clean up old handlers
-    inactiveImg.onload = null;
-    inactiveImg.onerror = null;
-
-    // Attach handlers
-    inactiveImg.onload = onImageLoaded;
-    inactiveImg.onerror = onImageLoaded;
-    
-    // Set target image source
-    inactiveImg.src = getPageImageUrl(targetPage);
-    
-    if (inactiveImg.complete) {
-        onImageLoaded();
+        });
     } else {
-        // Safe fallback timeout
-        setTimeout(onImageLoaded, 200);
+        // Fallback: direct page change (no animation)
+        currentPage = targetPage;
+        renderCurrentPageDirectly();
+        updateUI();
+        isTransitioning = false;
+        window.history.pushState(null, null, `#page=${currentPage}`);
     }
 }
 
@@ -519,46 +469,8 @@ function setupEventListeners() {
         }
     });
 
-    // Touch Navigation for Mobile (Swipe Gestures)
-    let touchStartX = 0;
-    let touchStartY = 0;
-    
-    elements.viewerMain.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-    
-    elements.viewerMain.addEventListener('touchmove', (e) => {
-        if (e.touches.length > 1) return; // Ignore pinch-zooms
-        
-        const touchX = e.touches[0].clientX;
-        const touchY = e.touches[0].clientY;
-        const diffX = touchX - touchStartX;
-        const diffY = touchY - touchStartY;
-        
-        // If horizontal swipe is dominant, prevent default to block browser history back/forward swipe
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
-            if (e.cancelable) e.preventDefault();
-        }
-    }, { passive: false }); // Must be passive: false to allow preventDefault()
-    
-    elements.viewerMain.addEventListener('touchend', (e) => {
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
-        const swipeThreshold = 50; // Minimum swipe distance in pixels
-        
-        // Ensure horizontal swipe is dominant and exceeds threshold
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
-            if (diffX < 0) {
-                goNext(); // Swipe left -> Next page
-            } else {
-                goPrev(); // Swipe right -> Prev page
-            }
-        }
-    }, { passive: true });
+    // Touch navigation is handled natively by the FlipEngine
+    // (drag, swipe, and click-to-flip on the page area)
     
     // Close sidebar when clicking outside on mobile screens
     document.addEventListener('click', (e) => {
@@ -598,4 +510,29 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initDocument();
+    
+    // Initialize the canvas-based FlipEngine
+    if (typeof FlipEngine !== 'undefined') {
+        flipEngine = new FlipEngine({
+            viewport:   elements.canvasViewport,
+            getPageUrl: getPageImageUrl,
+            totalPages: TOTAL_PAGES,
+            onStart: function(dir) {
+                isTransitioning = true;
+            },
+            onComplete: function(newPage, completed, dir) {
+                if (completed) {
+                    currentPage = newPage;
+                    // Update the underlying slide image
+                    const activeImg = activeSlide === 'A' ? elements.pageImgA : elements.pageImgB;
+                    activeImg.src = getPageImageUrl(currentPage);
+                    updateUI();
+                    window.history.pushState(null, null, `#page=${currentPage}`);
+                    preloadAdjacentPages(currentPage);
+                }
+                isTransitioning = false;
+            }
+        });
+        flipEngine.setPage(currentPage);
+    }
 });
