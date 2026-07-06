@@ -415,17 +415,29 @@ function setupEventListeners() {
     // Touch Navigation for Mobile (Swipe Gestures)
     let touchStartX = 0;
     let touchStartY = 0;
-    let touchEndX = 0;
-    let touchEndY = 0;
     
     elements.viewerMain.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
     }, { passive: true });
     
+    elements.viewerMain.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1) return; // Ignore pinch-zooms
+        
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        const diffX = touchX - touchStartX;
+        const diffY = touchY - touchStartY;
+        
+        // If horizontal swipe is dominant, prevent default to block browser history back/forward swipe
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            if (e.cancelable) e.preventDefault();
+        }
+    }, { passive: false }); // Must be passive: false to allow preventDefault()
+    
     elements.viewerMain.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        touchEndY = e.changedTouches[0].screenY;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
         
         const diffX = touchEndX - touchStartX;
         const diffY = touchEndY - touchStartY;
