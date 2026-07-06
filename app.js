@@ -1,35 +1,30 @@
 // Application State
-let pdfDoc = null;
+const TOTAL_PAGES = 16;
 let currentPage = 1;
-let scale = 'auto'; // 'auto' fits the page size, or a float number for explicit zoom
+let scale = 1.0; // Zoom scale factor
 let sidebarOpen = false;
 let isTransitioning = false;
-let pdfUrl = '';
 
 // DOM Elements
 const elements = {
     app: document.getElementById('app'),
-    docTitle: document.getElementById('documentTitle'),
     sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
     shareBtn: document.getElementById('shareBtn'),
     thumbnailSidebar: document.getElementById('thumbnailSidebar'),
     thumbnailContainer: document.getElementById('thumbnailContainer'),
     viewerMain: document.getElementById('viewerMain'),
-    uploadContainer: document.getElementById('uploadContainer'),
-    pdfFileInput: document.getElementById('pdfFileInput'),
-    browseBtn: document.getElementById('browseBtn'),
     carouselWrapper: document.getElementById('carouselWrapper'),
     canvasViewport: document.getElementById('canvasViewport'),
     slideContainer: document.getElementById('slideContainer'),
     slideCurrent: document.getElementById('slideCurrent'),
     slideTransition: document.getElementById('slideTransition'),
+    pageImgCurrent: document.getElementById('pageImgCurrent'),
+    pageImgTransition: document.getElementById('pageImgTransition'),
     prevBtn: document.getElementById('prevBtn'),
     nextBtn: document.getElementById('nextBtn'),
     pageIndicator: document.getElementById('pageIndicator'),
     currentPageNum: document.getElementById('currentPageNum'),
     totalPageNum: document.getElementById('totalPageNum'),
-    loadingOverlay: document.getElementById('loadingOverlay'),
-    loadingMessage: document.getElementById('loadingMessage'),
     appFooter: document.getElementById('appFooter'),
     
     // Footer Controls
@@ -48,9 +43,10 @@ const elements = {
     toastContainer: document.getElementById('toastContainer')
 };
 
-// Canvas references
-let currentCanvasLeft = document.getElementById('pdfCanvasCurrent');
-let transitionCanvasLeft = document.getElementById('pdfCanvasTransition');
+// Get WebP page path
+function getPageImageUrl(pageNum) {
+    return `pages/page-${pageNum}.webp`;
+}
 
 // -------------------------------------------------------------
 // Toast Notifications
@@ -60,11 +56,7 @@ function showToast(message, type = 'success') {
     toast.className = `toast toast-${type}`;
     
     const icon = document.createElement('i');
-    if (type === 'success') {
-        icon.className = 'fa-solid fa-circle-check';
-    } else {
-        icon.className = 'fa-solid fa-circle-exclamation';
-    }
+    icon.className = type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation';
     
     const text = document.createElement('span');
     text.textContent = message;
@@ -73,7 +65,7 @@ function showToast(message, type = 'success') {
     toast.appendChild(text);
     elements.toastContainer.appendChild(toast);
     
-    // Force reflow for entry animation
+    // Trigger entry transition
     toast.offsetHeight;
     toast.classList.add('show');
     
@@ -84,231 +76,116 @@ function showToast(message, type = 'success') {
 }
 
 // -------------------------------------------------------------
-// Document Loading
+// Document Initialization
 // -------------------------------------------------------------
-async function loadPDF(source, name = 'Booklet') {
-    elements.loadingOverlay.classList.remove('hidden');
-    elements.loadingMessage.textContent = 'Parsing PDF Document...';
+function initDocument() {
+    // Set static values
+    elements.totalPageNum.textContent = TOTAL_PAGES;
+    elements.totalPagesLabel.textContent = TOTAL_PAGES;
+    elements.pageNumberInput.max = TOTAL_PAGES;
     
-    try {
-        let loadingTask;
-        if (typeof source === 'string') {
-            loadingTask = pdfjsLib.getDocument(source);
-            pdfUrl = source;
-        } else {
-            loadingTask = pdfjsLib.getDocument({ data: source });
-            pdfUrl = ''; // Blob/ArrayBuffer cannot be referenced by a standard URL directly
+    // Set download PDF button pointing to your CDN hosted PDF
+    elements.downloadPdfBtn.href = 'https://xklbw4viyock6snd.public.blob.vercel-storage.com/Booklet%202026.pdf';
+    
+    // Build Sidebar thumbnails
+    generateThumbnails();
+    
+    // Parse starting page from URL hash deep-link
+    let startPage = 1;
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#page=')) {
+        const pageNum = parseInt(hash.replace('#page=', ''), 10);
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= TOTAL_PAGES) {
+            startPage = pageNum;
         }
-        
-        pdfDoc = await loadingTask.promise;
-        
-        const docBaseName = name.replace(/\.[^/.]+$/, "");
-        if (elements.docTitle) {
-            elements.docTitle.textContent = docBaseName;
-        }
-        document.title = `${docBaseName} - Thirunaal August 5`;
-        
-        // Update total pages UI
-        elements.totalPageNum.textContent = pdfDoc.numPages;
-        elements.totalPagesLabel.textContent = pdfDoc.numPages;
-        elements.pageNumberInput.max = pdfDoc.numPages;
-        
-        // Set download PDF button
-        if (typeof source === 'string') {
-            elements.downloadPdfBtn.href = source;
-            elements.downloadPdfBtn.classList.remove('hidden');
-        } else {
-            // Create a blob URL to allow downloading uploaded local PDF
-            const blob = new Blob([source], { type: 'application/pdf' });
-            elements.downloadPdfBtn.href = URL.createObjectURL(blob);
-            elements.downloadPdfBtn.classList.remove('hidden');
-        }
-        
-        // Hide upload container and show viewer
-        elements.uploadContainer.classList.add('hidden');
-        elements.carouselWrapper.classList.remove('hidden');
-        elements.pageIndicator.classList.remove('hidden');
-        elements.appFooter.classList.remove('hidden');
-        
-        // Build Sidebar thumbnails
-        await generateThumbnails();
-        
-        // Handle deep-linking page navigation
-        let startPage = 1;
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#page=')) {
-            const pageNum = parseInt(hash.replace('#page=', ''), 10);
-            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= pdfDoc.numPages) {
-                startPage = pageNum;
-            }
-        }
-        
-        // First render
-        currentPage = startPage;
-        updateUI();
-        await renderCurrentPageDirectly();
-        
-        showToast('PDF loaded successfully!');
-    } catch (error) {
-        console.error('Error loading PDF: ', error);
-        showToast('Failed to load PDF file. Please try another one.', 'error');
-        
-        // Only show upload container if we don't have a loaded document
-        if (!pdfDoc) {
-            elements.uploadContainer.classList.remove('hidden');
-            elements.carouselWrapper.classList.add('hidden');
-            elements.pageIndicator.classList.add('hidden');
-            elements.appFooter.classList.add('hidden');
-        }
-    } finally {
-        elements.loadingOverlay.classList.add('hidden');
     }
-}
-
-// Check for default PDF on startup
-async function checkDefaultPdf() {
-    const defaultUrl = 'https://xklbw4viyock6snd.public.blob.vercel-storage.com/Booklet%202026.pdf';
-    loadPDF(defaultUrl, 'Booklet 2026');
+    
+    currentPage = startPage;
+    updateUI();
+    renderCurrentPageDirectly();
 }
 
 // -------------------------------------------------------------
 // Rendering Page Logic
 // -------------------------------------------------------------
-// Calculate viewport scales dynamically
-function getScaleForViewport(pageWidth, pageHeight, containerWidth, containerHeight) {
-    if (scale !== 'auto') return scale;
-    
-    // Fit margin
-    const margin = 32;
-    const availWidth = containerWidth - margin * 2;
-    const availHeight = containerHeight - margin * 2;
-    
-    const wScale = availWidth / pageWidth;
-    const hScale = availHeight / pageHeight;
-    
-    // Choose the limiting factor to fit page completely
-    return Math.min(wScale, hScale);
+function renderCurrentPageDirectly() {
+    elements.pageImgCurrent.src = getPageImageUrl(currentPage);
+    applyZoom();
 }
 
-// Main rendering engine onto target canvas elements
-async function renderPageToCanvas(pageNum, canvas) {
-    if (!pdfDoc || pageNum < 1 || pageNum > pdfDoc.numPages) return false;
-    
-    const containerWidth = elements.canvasViewport.clientWidth;
-    const containerHeight = elements.canvasViewport.clientHeight;
-    
-    return renderSingleCanvas(pageNum, canvas, containerWidth, containerHeight);
-}
-
-async function renderSingleCanvas(pageNum, canvas, containerWidth, containerHeight) {
-    const page = await pdfDoc.getPage(pageNum);
-    const viewportDefault = page.getViewport({ scale: 1.0 });
-    const computedScale = getScaleForViewport(viewportDefault.width, viewportDefault.height, containerWidth, containerHeight);
-    
-    const viewport = page.getViewport({ scale: computedScale });
-    renderCanvasContext(page, viewport, canvas);
-    
-    // Update zoom label
-    elements.zoomLevelLabel.textContent = `${Math.round(computedScale * 100)}%`;
-    
-    return true;
-}
-
-function renderCanvasContext(page, viewport, canvas) {
-    const context = canvas.getContext('2d');
-    const pixelRatio = window.devicePixelRatio || 1;
-    
-    canvas.width = viewport.width * pixelRatio;
-    canvas.height = viewport.height * pixelRatio;
-    
-    canvas.style.width = `${viewport.width}px`;
-    canvas.style.height = `${viewport.height}px`;
-    
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = 'high';
-    
-    const renderContext = {
-        canvasContext: context,
-        viewport: viewport,
-        transform: [pixelRatio, 0, 0, pixelRatio, 0, 0]
-    };
-    
-    page.render(renderContext);
-}
-
-// Directly render on current canvas (no animation - e.g. resizing/zooming)
-async function renderCurrentPageDirectly() {
-    if (!pdfDoc) return;
-    await renderPageToCanvas(currentPage, currentCanvasLeft);
+function applyZoom() {
+    const img = elements.pageImgCurrent;
+    if (scale === 1.0) {
+        img.style.transform = 'none';
+        elements.zoomLevelLabel.textContent = '100%';
+    } else {
+        img.style.transform = `scale(${scale})`;
+        elements.zoomLevelLabel.textContent = `${Math.round(scale * 100)}%`;
+    }
 }
 
 // -------------------------------------------------------------
 // Carousel Slide Transitions
 // -------------------------------------------------------------
-async function navigateToPage(targetPage, direction) {
-    if (!pdfDoc || isTransitioning) return;
-    if (targetPage < 1 || targetPage > pdfDoc.numPages) return;
+function navigateToPage(targetPage, direction) {
+    if (isTransitioning) return;
+    if (targetPage < 1 || targetPage > TOTAL_PAGES) return;
     
-    // Prevent double clicking navigation
     isTransitioning = true;
     
-    // Setup target page rendering in the transition slide
-    const loadSuccess = await renderPageToCanvas(targetPage, transitionCanvasLeft);
+    // Pre-load the target image to prevent any blank screen flicker
+    elements.pageImgTransition.src = getPageImageUrl(targetPage);
     
-    if (!loadSuccess) {
-        isTransitioning = false;
-        return;
-    }
-    
-    currentPage = targetPage;
-    updateUI();
-    
-    // Setup animations
-    elements.slideCurrent.className = 'slide-item active';
-    elements.slideTransition.className = 'slide-item active';
-    
-    if (direction === 'next') {
-        elements.slideCurrent.classList.add('slide-out-left');
-        elements.slideTransition.classList.add('slide-in-right');
-    } else if (direction === 'prev') {
-        elements.slideCurrent.classList.add('slide-out-right');
-        elements.slideTransition.classList.add('slide-in-left');
-    }
-    
-    // Wait for animation to finish (matching CSS transition 400ms)
-    setTimeout(() => {
-        // Swap Canvas Nodes contents to avoid complete redraws
-        currentCanvasLeft.width = transitionCanvasLeft.width;
-        currentCanvasLeft.height = transitionCanvasLeft.height;
-        currentCanvasLeft.style.width = transitionCanvasLeft.style.width;
-        currentCanvasLeft.style.height = transitionCanvasLeft.style.height;
+    const onImageLoaded = () => {
+        currentPage = targetPage;
+        updateUI();
         
-        const currentCtxLeft = currentCanvasLeft.getContext('2d');
-        currentCtxLeft.clearRect(0, 0, currentCanvasLeft.width, currentCanvasLeft.height);
-        currentCtxLeft.drawImage(transitionCanvasLeft, 0, 0);
-        
-        // Clear transition canvas
-        transitionCanvasLeft.getContext('2d').clearRect(0, 0, transitionCanvasLeft.width, transitionCanvasLeft.height);
-        
-        // Reset classes
+        // Trigger sliding CSS animations
         elements.slideCurrent.className = 'slide-item active';
-        elements.slideTransition.className = 'slide-item';
+        elements.slideTransition.className = 'slide-item active';
         
-        isTransitioning = false;
+        if (direction === 'next') {
+            elements.slideCurrent.classList.add('slide-out-left');
+            elements.slideTransition.classList.add('slide-in-right');
+        } else if (direction === 'prev') {
+            elements.slideCurrent.classList.add('slide-out-right');
+            elements.slideTransition.classList.add('slide-in-left');
+        }
         
-        // Update URL hash without jumping page listener
-        window.history.pushState(null, null, `#page=${currentPage}`);
-    }, 400);
+        // Wait for CSS slide transition to complete (400ms)
+        setTimeout(() => {
+            // Commit transition changes
+            elements.pageImgCurrent.src = elements.pageImgTransition.src;
+            applyZoom(); // Apply current zoom level to the active image
+            
+            // Reset transition slide image
+            elements.pageImgTransition.removeAttribute('src');
+            
+            // Restore classes
+            elements.slideCurrent.className = 'slide-item active';
+            elements.slideTransition.className = 'slide-item';
+            
+            isTransitioning = false;
+            
+            // Update URL hash deep-link without triggering hashchange listener
+            window.history.pushState(null, null, `#page=${currentPage}`);
+        }, 400);
+    };
+
+    if (elements.pageImgTransition.complete) {
+        onImageLoaded();
+    } else {
+        elements.pageImgTransition.onload = onImageLoaded;
+    }
 }
 
 // -------------------------------------------------------------
 // Sidebar Thumbnail Generation
 // -------------------------------------------------------------
-async function generateThumbnails() {
+function generateThumbnails() {
     elements.thumbnailContainer.innerHTML = '';
     
-    // Render sequentially to prevent UI freezing
-    for (let i = 1; i <= pdfDoc.numPages; i++) {
+    for (let i = 1; i <= TOTAL_PAGES; i++) {
         const thumbItem = document.createElement('div');
         thumbItem.className = `thumbnail-item ${i === currentPage ? 'active' : ''}`;
         thumbItem.dataset.page = i;
@@ -316,42 +193,26 @@ async function generateThumbnails() {
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
         
-        const canvas = document.createElement('canvas');
-        wrapper.appendChild(canvas);
+        const img = document.createElement('img');
+        img.src = getPageImageUrl(i);
+        img.loading = 'lazy'; // Let the browser handle lazy-loading for offscreen thumbs
+        img.alt = `Page ${i} Thumbnail`;
         
         const label = document.createElement('div');
         label.className = 'thumbnail-label';
         label.textContent = `Page ${i}`;
         
+        wrapper.appendChild(img);
         thumbItem.appendChild(wrapper);
         thumbItem.appendChild(label);
         elements.thumbnailContainer.appendChild(thumbItem);
         
-        // Event listener for thumbnail clicks
+        // Jump to clicked page
         thumbItem.addEventListener('click', () => {
             if (i === currentPage) return;
             const direction = i > currentPage ? 'next' : 'prev';
             navigateToPage(i, direction);
         });
-        
-        // Render thumbnail canvas asynchronously
-        (async () => {
-            try {
-                const page = await pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 0.15 }); // Small scale for thumbnail
-                const context = canvas.getContext('2d');
-                
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-            } catch (err) {
-                console.error(`Error rendering thumbnail page ${i}: `, err);
-            }
-        })();
     }
 }
 
@@ -359,10 +220,8 @@ function updateActiveThumbnail() {
     const thumbnails = elements.thumbnailContainer.querySelectorAll('.thumbnail-item');
     thumbnails.forEach((thumb) => {
         const pageNum = parseInt(thumb.dataset.page, 10);
-        
         if (pageNum === currentPage) {
             thumb.classList.add('active');
-            // Scroll thumbnail into view smoothly
             thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
             thumb.classList.remove('active');
@@ -374,14 +233,12 @@ function updateActiveThumbnail() {
 // UI State Updates
 // -------------------------------------------------------------
 function updateUI() {
-    if (!pdfDoc) return;
-    
     elements.currentPageNum.textContent = currentPage;
     elements.pageNumberInput.value = currentPage;
     
     // Disable navigation buttons at edges
     const isFirst = currentPage === 1;
-    const isLast = currentPage === pdfDoc.numPages;
+    const isLast = currentPage === TOTAL_PAGES;
         
     elements.prevBtn.disabled = isFirst;
     elements.prevPageBtn.disabled = isFirst;
@@ -398,16 +255,15 @@ function updateUI() {
 // Navigation Trigger Handlers
 // -------------------------------------------------------------
 function goNext() {
-    if (!pdfDoc || isTransitioning) return;
-    const target = Math.min(currentPage + 1, pdfDoc.numPages);
+    if (isTransitioning) return;
+    const target = Math.min(currentPage + 1, TOTAL_PAGES);
     if (target !== currentPage) {
         navigateToPage(target, 'next');
     }
 }
 
-// -------------------------------------------------------------
 function goPrev() {
-    if (!pdfDoc || isTransitioning) return;
+    if (isTransitioning) return;
     const target = Math.max(currentPage - 1, 1);
     if (target !== currentPage) {
         navigateToPage(target, 'prev');
@@ -429,14 +285,14 @@ function setupEventListeners() {
     });
     
     elements.lastPageBtn.addEventListener('click', () => {
-        if (currentPage !== pdfDoc.numPages) navigateToPage(pdfDoc.numPages, 'next');
+        if (currentPage !== TOTAL_PAGES) navigateToPage(TOTAL_PAGES, 'next');
     });
     
     // Page Input Selector
     elements.pageNumberInput.addEventListener('change', (e) => {
         let val = parseInt(e.target.value, 10);
         if (isNaN(val) || val < 1) val = 1;
-        if (val > pdfDoc.numPages) val = pdfDoc.numPages;
+        if (val > TOTAL_PAGES) val = TOTAL_PAGES;
         
         if (val !== currentPage) {
             const dir = val > currentPage ? 'next' : 'prev';
@@ -449,9 +305,6 @@ function setupEventListeners() {
         sidebarOpen = !sidebarOpen;
         elements.thumbnailSidebar.classList.toggle('collapsed', !sidebarOpen);
         elements.sidebarToggleBtn.classList.toggle('active', sidebarOpen);
-        
-        // Re-render currently visible page because container dimensions changed
-        setTimeout(renderCurrentPageDirectly, 300);
     });
     
     // Share page button
@@ -465,25 +318,21 @@ function setupEventListeners() {
         });
     });
     
-    // Zoom Buttons
+    // Zoom Buttons (CSS Transform Zoom)
     elements.zoomInBtn.addEventListener('click', () => {
-        if (scale === 'auto') scale = 1.0;
-        scale = Math.min(scale + 0.2, 3.0);
-        renderCurrentPageDirectly();
+        scale = Math.min(scale + 0.25, 3.0);
+        applyZoom();
     });
     
     elements.zoomOutBtn.addEventListener('click', () => {
-        if (scale === 'auto') scale = 1.0;
-        scale = Math.max(scale - 0.2, 0.4);
-        renderCurrentPageDirectly();
+        scale = Math.max(scale - 0.25, 0.5);
+        applyZoom();
     });
     
     elements.zoomFitBtn.addEventListener('click', () => {
-        scale = 'auto';
-        renderCurrentPageDirectly();
+        scale = 1.0;
+        applyZoom();
     });
-    
-
     
     // Fullscreen Mode
     elements.fullscreenBtn.addEventListener('click', () => {
@@ -503,12 +352,10 @@ function setupEventListeners() {
         if (!document.fullscreenElement) {
             elements.fullscreenBtn.querySelector('i').className = 'fa-solid fa-maximize';
         }
-        setTimeout(renderCurrentPageDirectly, 100);
     });
     
     // Keyboard Navigation
     document.addEventListener('keydown', (e) => {
-        if (elements.uploadContainer.classList.contains('hidden') === false) return;
         if (document.activeElement === elements.pageNumberInput) return;
         
         if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -529,75 +376,15 @@ function setupEventListeners() {
         }
     });
     
-    // Window Resize Handler (Debounced)
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            if (pdfDoc) renderCurrentPageDirectly();
-        }, 150);
-    });
-    
     // Deep Linking: Hash change listener
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash;
         if (hash && hash.startsWith('#page=')) {
             const val = parseInt(hash.replace('#page=', ''), 10);
-            if (!isNaN(val) && val >= 1 && val <= pdfDoc.numPages && val !== currentPage) {
+            if (!isNaN(val) && val >= 1 && val <= TOTAL_PAGES && val !== currentPage) {
                 const dir = val > currentPage ? 'next' : 'prev';
                 navigateToPage(val, dir);
             }
-        }
-    });
-    
-    // Drag and Drop PDF upload fallback
-    elements.browseBtn.addEventListener('click', () => elements.pdfFileInput.click());
-    
-    elements.pdfFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && file.type === 'application/pdf') {
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                loadPDF(evt.target.result, file.name);
-            };
-            reader.readAsArrayBuffer(file);
-        } else {
-            showToast('Please select a valid PDF file.', 'error');
-        }
-    });
-    
-    // Drag & Drop event bindings
-    ['dragenter', 'dragover'].forEach(eventName => {
-        elements.viewerMain.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!pdfDoc) {
-                elements.uploadContainer.classList.add('drag-over');
-            }
-        }, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        elements.viewerMain.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            elements.uploadContainer.classList.remove('drag-over');
-        }, false);
-    });
-    
-    elements.viewerMain.addEventListener('drop', (e) => {
-        if (pdfDoc) return; // Prevent uploading while document is active
-        const dt = e.dataTransfer;
-        const file = dt.files[0];
-        
-        if (file && file.type === 'application/pdf') {
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                loadPDF(evt.target.result, file.name);
-            };
-            reader.readAsArrayBuffer(file);
-        } else {
-            showToast('Please drop a valid PDF file.', 'error');
         }
     });
 }
@@ -605,5 +392,5 @@ function setupEventListeners() {
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    checkDefaultPdf();
+    initDocument();
 });

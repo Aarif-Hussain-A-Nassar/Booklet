@@ -46,24 +46,8 @@
 
             <!-- Viewer Area -->
             <main id="viewerMain" class="viewer-main">
-                <!-- Dropzone / Landing screen when no PDF is loaded -->
-                <div id="uploadContainer" class="upload-container">
-                    <div class="upload-box">
-                        <div class="upload-icon">
-                            <i class="fa-solid fa-file-pdf"></i>
-                        </div>
-                        <h2>Open PDF Document</h2>
-                        <p class="upload-instructions">Drag and drop your PDF here, or click to browse.</p>
-                        <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;">
-                        <button id="browseBtn" class="action-btn primary-btn">Browse Files</button>
-                        <div class="upload-hint">
-                            <p>Tip: Place a PDF named <strong><code>booklet.pdf</code></strong> in this folder to load it automatically.</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- PDF Carousel Viewer Screen -->
-                <div id="carouselWrapper" class="carousel-wrapper hidden">
+                <div id="carouselWrapper" class="carousel-wrapper">
                     <button id="prevBtn" class="carousel-nav-btn prev" aria-label="Previous Page">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
@@ -72,13 +56,13 @@
                         <!-- Slide wrapper for single page carousel -->
                         <div id="slideContainer" class="slide-container">
                             <div id="slideCurrent" class="slide-item active">
-                                <div class="canvas-wrapper">
-                                    <canvas id="pdfCanvasCurrent"></canvas>
+                                <div class="image-wrapper">
+                                    <img id="pageImgCurrent" src="" alt="Page Content">
                                 </div>
                             </div>
                             <div id="slideTransition" class="slide-item">
-                                <div class="canvas-wrapper">
-                                    <canvas id="pdfCanvasTransition"></canvas>
+                                <div class="image-wrapper">
+                                    <img id="pageImgTransition" src="" alt="Page Content">
                                 </div>
                             </div>
                         </div>
@@ -90,30 +74,22 @@
                 </div>
 
                 <!-- Page indicator overlay (floating) -->
-                <div id="pageIndicator" class="page-indicator-overlay hidden">
-                    Page <span id="currentPageNum">1</span> of <span id="totalPageNum">1</span>
-                </div>
-
-                <!-- Loading overlay -->
-                <div id="loadingOverlay" class="loading-overlay hidden">
-                    <div class="spinner-box">
-                        <div class="pulse-spinner"></div>
-                        <p id="loadingMessage">Loading PDF Document...</p>
-                    </div>
+                <div id="pageIndicator" class="page-indicator-overlay">
+                    Page <span id="currentPageNum">1</span> of <span id="totalPageNum">16</span>
                 </div>
             </main>
         </div>
 
         <!-- Bottom Controller Bar -->
-        <footer id="appFooter" class="app-footer hidden">
+        <footer id="appFooter" class="app-footer">
             <div class="footer-section navigation-section">
                 <button id="firstPageBtn" class="icon-btn" title="First Page"><i class="fa-solid fa-angles-left"></i></button>
                 <button id="prevPageBtn" class="icon-btn" title="Previous Page"><i class="fa-solid fa-angle-left"></i></button>
                 
                 <div class="page-selector">
-                    <input type="number" id="pageNumberInput" min="1" value="1">
+                    <input type="number" id="pageNumberInput" min="1" max="16" value="1">
                     <span>/</span>
-                    <span id="totalPagesLabel">1</span>
+                    <span id="totalPagesLabel">16</span>
                 </div>
 
                 <button id="nextPageBtn" class="icon-btn" title="Next Page"><i class="fa-solid fa-angle-right"></i></button>
@@ -129,7 +105,6 @@
 
             <div class="footer-section settings-section">
                 <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen"><i class="fa-solid fa-maximize"></i></button>
-                <a id="downloadPdfBtn" class="icon-btn" title="Download Original PDF" download><i class="fa-solid fa-arrow-down-to-bracket"></i></a>
             </div>
         </footer>
 
@@ -137,12 +112,6 @@
         <div id="toastContainer" class="toast-container"></div>
     </div>
 
-    <!-- PDF.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <script>
-        // Configure PDF.js Global Worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    </script>
     <script src="app.js"></script>
 </body>
 </html>
