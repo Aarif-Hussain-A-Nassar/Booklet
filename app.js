@@ -387,6 +387,39 @@ function setupEventListeners() {
             }
         }
     });
+
+    // Touch Navigation for Mobile (Swipe Gestures)
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    elements.viewerMain.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    elements.viewerMain.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const swipeThreshold = 50; // Minimum swipe distance in pixels
+        
+        if (touchEndX < touchStartX - swipeThreshold) {
+            goNext(); // Swipe left -> Next page
+        } else if (touchEndX > touchStartX + swipeThreshold) {
+            goPrev(); // Swipe right -> Prev page
+        }
+    }, { passive: true });
+    
+    // Close sidebar when clicking outside on mobile screens
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && sidebarOpen) {
+            const isClickInsideSidebar = elements.thumbnailSidebar.contains(e.target);
+            const isClickOnToggleBtn = elements.sidebarToggleBtn.contains(e.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggleBtn) {
+                sidebarOpen = false;
+                elements.thumbnailSidebar.classList.add('collapsed');
+                elements.sidebarToggleBtn.classList.remove('active');
+            }
+        }
+    });
 }
 
 // Initialize Application

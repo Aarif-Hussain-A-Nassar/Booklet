@@ -594,29 +594,78 @@ button:disabled {
     display: none !important;
 }
 
-/* Responsive */
+/* Responsive Mobile Optimization */
 @media (max-width: 768px) {
     :root {
-        --sidebar-width: 180px;
+        --sidebar-width: 200px;
         --header-height: 48px;
         --footer-height: 52px;
-    }
-    
-    .doc-title {
-        font-size: 0.85rem;
-        max-width: 150px;
     }
     
     .action-btn span {
         display: none;
     }
     
+    /* Hide desktop overlay arrows on mobile to save screen space */
     .carousel-nav-btn {
-        width: 32px;
-        height: 32px;
+        display: none !important;
     }
     
     .zoom-section {
         display: none;
+    }
+    
+    /* Floating Sidebar on Mobile (drawer overlay) */
+    .thumbnail-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: var(--sidebar-width);
+        box-shadow: 8px 0 20px rgba(0, 0, 0, 0.15);
+        z-index: 200;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .thumbnail-sidebar.collapsed {
+        transform: translateX(-100%);
+        width: var(--sidebar-width);
+        border-right: none;
+    }
+    
+    /* Maximize image display area on mobile */
+    .viewer-main {
+        padding: 8px;
+    }
+    
+    .carousel-wrapper {
+        gap: 0;
+    }
+    
+    .image-wrapper {
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - var(--header-height) - var(--footer-height) - 16px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .image-wrapper img {
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - var(--header-height) - var(--footer-height) - 16px);
+        object-fit: contain;
+    }
+    
+    /* Footer layout compression for mobile */
+    .app-footer {
+        padding: 0 10px;
+    }
+    
+    .footer-section {
+        gap: 4px;
+    }
+    
+    button {
+        padding: 6px 10px;
     }
 }
