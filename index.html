@@ -69,18 +69,16 @@
                     </button>
                     
                     <div id="canvasViewport" class="canvas-viewport">
-                        <!-- Dual slide wrapper for smooth transition animations -->
+                        <!-- Slide wrapper for single page carousel -->
                         <div id="slideContainer" class="slide-container">
                             <div id="slideCurrent" class="slide-item active">
                                 <div class="canvas-wrapper">
                                     <canvas id="pdfCanvasCurrent"></canvas>
-                                    <canvas id="pdfCanvasCurrentRight" class="hidden"></canvas>
                                 </div>
                             </div>
                             <div id="slideTransition" class="slide-item">
                                 <div class="canvas-wrapper">
                                     <canvas id="pdfCanvasTransition"></canvas>
-                                    <canvas id="pdfCanvasTransitionRight" class="hidden"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -130,9 +128,6 @@
             </div>
 
             <div class="footer-section settings-section">
-                <button id="viewModeToggle" class="icon-btn" title="Toggle Double Page Mode">
-                    <i class="fa-solid fa-book-open"></i>
-                </button>
                 <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen"><i class="fa-solid fa-maximize"></i></button>
                 <a id="downloadPdfBtn" class="icon-btn" title="Download Original PDF" download><i class="fa-solid fa-arrow-down-to-bracket"></i></a>
             </div>

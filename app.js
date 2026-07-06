@@ -2,7 +2,6 @@
 let pdfDoc = null;
 let currentPage = 1;
 let scale = 'auto'; // 'auto' fits the page size, or a float number for explicit zoom
-let isDoublePage = false; // booklet mode (spread)
 let sidebarOpen = false;
 let isTransitioning = false;
 let pdfUrl = '';
@@ -44,7 +43,6 @@ const elements = {
     zoomInBtn: document.getElementById('zoomInBtn'),
     zoomLevelLabel: document.getElementById('zoomLevelLabel'),
     zoomFitBtn: document.getElementById('zoomFitBtn'),
-    viewModeToggle: document.getElementById('viewModeToggle'),
     fullscreenBtn: document.getElementById('fullscreenBtn'),
     downloadPdfBtn: document.getElementById('downloadPdfBtn'),
     toastContainer: document.getElementById('toastContainer')
@@ -52,9 +50,7 @@ const elements = {
 
 // Canvas references
 let currentCanvasLeft = document.getElementById('pdfCanvasCurrent');
-let currentCanvasRight = document.getElementById('pdfCanvasCurrentRight');
 let transitionCanvasLeft = document.getElementById('pdfCanvasTransition');
-let transitionCanvasRight = document.getElementById('pdfCanvasTransitionRight');
 
 // -------------------------------------------------------------
 // Toast Notifications
@@ -204,81 +200,13 @@ function getScaleForViewport(pageWidth, pageHeight, containerWidth, containerHei
 }
 
 // Main rendering engine onto target canvas elements
-async function renderPageToCanvas(pageNum, canvasLeft, canvasRight) {
+async function renderPageToCanvas(pageNum, canvas) {
     if (!pdfDoc || pageNum < 1 || pageNum > pdfDoc.numPages) return false;
     
     const containerWidth = elements.canvasViewport.clientWidth;
     const containerHeight = elements.canvasViewport.clientHeight;
     
-    // Logic for double-page spreads
-    if (isDoublePage) {
-        canvasRight.classList.remove('hidden');
-        
-        // Cover (page 1) is always displayed centered alone
-        if (pageNum === 1) {
-            canvasRight.classList.add('hidden');
-            return renderSingleCanvas(pageNum, canvasLeft, containerWidth, containerHeight);
-        }
-        
-        // Back Cover (last page) is centered alone if total pages is even
-        if (pageNum === pdfDoc.numPages && pdfDoc.numPages % 2 === 0) {
-            canvasRight.classList.add('hidden');
-            return renderSingleCanvas(pageNum, canvasLeft, containerWidth, containerHeight);
-        }
-        
-        // Determine the even/odd pair
-        let leftPageNum = pageNum;
-        let rightPageNum = pageNum + 1;
-        
-        // If user jumped to odd page > 1, slide back 1 to pair it as (Even, Odd)
-        if (pageNum % 2 !== 0) {
-            leftPageNum = pageNum - 1;
-            rightPageNum = pageNum;
-        }
-        
-        // Render two pages side-by-side
-        const leftPage = await pdfDoc.getPage(leftPageNum);
-        let rightPage = null;
-        if (rightPageNum <= pdfDoc.numPages) {
-            rightPage = await pdfDoc.getPage(rightPageNum);
-        }
-        
-        const leftViewportDefault = leftPage.getViewport({ scale: 1.0 });
-        const rightViewportDefault = rightPage ? rightPage.getViewport({ scale: 1.0 }) : leftViewportDefault;
-        
-        // Combined dimensions
-        const totalWidth = leftViewportDefault.width + (rightPage ? rightViewportDefault.width : 0);
-        const maxHeight = Math.max(leftViewportDefault.height, rightViewportDefault.height);
-        
-        // Scale factor for combined size
-        const combinedScale = getScaleForViewport(totalWidth, maxHeight, containerWidth, containerHeight);
-        
-        // Render left page
-        const leftViewport = leftPage.getViewport({ scale: combinedScale });
-        renderCanvasContext(leftPage, leftViewport, canvasLeft);
-        
-        // Render right page
-        if (rightPage) {
-            canvasRight.classList.remove('hidden');
-            const rightViewport = rightPage.getViewport({ scale: combinedScale });
-            renderCanvasContext(rightPage, rightViewport, canvasRight);
-        } else {
-            canvasRight.classList.add('hidden');
-        }
-        
-        // Update label to reflect page range
-        elements.currentPageNum.textContent = `${leftPageNum}-${rightPageNum <= pdfDoc.numPages ? rightPageNum : pdfDoc.numPages}`;
-        elements.pageNumberInput.value = leftPageNum;
-        
-        // Update zoom level label
-        elements.zoomLevelLabel.textContent = `${Math.round(combinedScale * 100)}%`;
-        
-        return true;
-    } else {
-        // Single Page Mode
-        canvasRight.classList.add('hidden');
-        return renderSingleCanvas(pageNum, canvasLeft, containerWidth, containerHeight);
-    }
+    return renderSingleCanvas(pageNum, canvas, containerWidth, containerHeight);
 }
 
 async function renderSingleCanvas(pageNum, canvas, containerWidth, containerHeight) {
@@ -320,7 +248,7 @@ function renderCanvasContext(page, viewport, canvas) {
 // Directly render on current canvas (no animation - e.g. resizing/zooming)
 async function renderCurrentPageDirectly() {
     if (!pdfDoc) return;
-    await renderPageToCanvas(currentPage, currentCanvasLeft, currentCanvasRight);
+    await renderPageToCanvas(currentPage, currentCanvasLeft);
 }
 
 // -------------------------------------------------------------
@@ -334,7 +262,7 @@ async function navigateToPage(targetPage, direction) {
     isTransitioning = true;
     
     // Setup target page rendering in the transition slide
-    const loadSuccess = await renderPageToCanvas(targetPage, transitionCanvasLeft, transitionCanvasRight);
+    const loadSuccess = await renderPageToCanvas(targetPage, transitionCanvasLeft);
     
     if (!loadSuccess) {
         isTransitioning = false;
@@ -356,15 +284,9 @@ async function navigateToPage(targetPage, direction) {
         elements.slideTransition.classList.add('slide-in-left');
     }
     
-    // Wait for animation to finish (matching CSS transition 500ms)
+    // Wait for animation to finish (matching CSS transition 400ms)
     setTimeout(() => {
-        // Swap Canvas Nodes contents / pointers to avoid complete redraws
-        // Swap Left Canvas
-        const tempLeftWidth = currentCanvasLeft.width;
-        const tempLeftHeight = currentCanvasLeft.height;
-        const tempLeftStyleWidth = currentCanvasLeft.style.width;
-        const tempLeftStyleHeight = currentCanvasLeft.style.height;
-        
+        // Swap Canvas Nodes contents to avoid complete redraws
         currentCanvasLeft.width = transitionCanvasLeft.width;
         currentCanvasLeft.height = transitionCanvasLeft.height;
         currentCanvasLeft.style.width = transitionCanvasLeft.style.width;
@@ -374,24 +296,8 @@ async function navigateToPage(targetPage, direction) {
         currentCtxLeft.clearRect(0, 0, currentCanvasLeft.width, currentCanvasLeft.height);
         currentCtxLeft.drawImage(transitionCanvasLeft, 0, 0);
         
-        // Swap Right Canvas
-        if (isDoublePage && currentPage !== 1 && !(currentPage === pdfDoc.numPages && pdfDoc.numPages % 2 === 0)) {
-            currentCanvasRight.classList.remove('hidden');
-            currentCanvasRight.width = transitionCanvasRight.width;
-            currentCanvasRight.height = transitionCanvasRight.height;
-            currentCanvasRight.style.width = transitionCanvasRight.style.width;
-            currentCanvasRight.style.height = transitionCanvasRight.style.height;
-            
-            const currentCtxRight = currentCanvasRight.getContext('2d');
-            currentCtxRight.clearRect(0, 0, currentCanvasRight.width, currentCanvasRight.height);
-            currentCtxRight.drawImage(transitionCanvasRight, 0, 0);
-        } else {
-            currentCanvasRight.classList.add('hidden');
-        }
-        
-        // Clear transition canvases
+        // Clear transition canvas
         transitionCanvasLeft.getContext('2d').clearRect(0, 0, transitionCanvasLeft.width, transitionCanvasLeft.height);
-        transitionCanvasRight.getContext('2d').clearRect(0, 0, transitionCanvasRight.width, transitionCanvasRight.height);
         
         // Reset classes
         elements.slideCurrent.className = 'slide-item active';
@@ -401,7 +307,7 @@ async function navigateToPage(targetPage, direction) {
         
         // Update URL hash without jumping page listener
         window.history.pushState(null, null, `#page=${currentPage}`);
-    }, 500);
+    }, 400);
 }
 
 // -------------------------------------------------------------
@@ -463,24 +369,12 @@ function updateActiveThumbnail() {
     thumbnails.forEach((thumb) => {
         const pageNum = parseInt(thumb.dataset.page, 10);
         
-        if (isDoublePage && currentPage > 1) {
-            let leftPage = currentPage;
-            if (currentPage % 2 !== 0) leftPage = currentPage - 1;
-            const rightPage = leftPage + 1;
-            
-            if (pageNum === leftPage || pageNum === rightPage) {
-                thumb.classList.add('active');
-            } else {
-                thumb.classList.remove('active');
-            }
+        if (pageNum === currentPage) {
+            thumb.classList.add('active');
+            // Scroll thumbnail into view smoothly
+            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
-            if (pageNum === currentPage) {
-                thumb.classList.add('active');
-                // Scroll thumbnail into view smoothly
-                thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                thumb.classList.remove('active');
-            }
+            thumb.classList.remove('active');
         }
     });
 }
@@ -491,25 +385,12 @@ function updateActiveThumbnail() {
 function updateUI() {
     if (!pdfDoc) return;
     
-    // Page counter overlay
-    if (isDoublePage && currentPage > 1 && !(currentPage === pdfDoc.numPages && pdfDoc.numPages % 2 === 0)) {
-        let left = currentPage;
-        if (currentPage % 2 !== 0) left = currentPage - 1;
-        const right = left + 1;
-        
-        const pageRangeStr = `${left}-${right <= pdfDoc.numPages ? right : pdfDoc.numPages}`;
-        elements.currentPageNum.textContent = pageRangeStr;
-        elements.pageNumberInput.value = left;
-    } else {
-        elements.currentPageNum.textContent = currentPage;
-        elements.pageNumberInput.value = currentPage;
-    }
+    elements.currentPageNum.textContent = currentPage;
+    elements.pageNumberInput.value = currentPage;
     
     // Disable navigation buttons at edges
     const isFirst = currentPage === 1;
-    const isLast = isDoublePage 
-        ? (currentPage >= pdfDoc.numPages - 1) 
-        : (currentPage === pdfDoc.numPages);
+    const isLast = currentPage === pdfDoc.numPages;
         
     elements.prevBtn.disabled = isFirst;
     elements.prevPageBtn.disabled = isFirst;
@@ -527,38 +408,16 @@ function updateUI() {
 // -------------------------------------------------------------
 function goNext() {
     if (!pdfDoc || isTransitioning) return;
-    
-    let step = 1;
-    if (isDoublePage) {
-        // If currently on cover, go to page 2 (spread starts)
-        if (currentPage === 1) {
-            step = 1;
-        } else {
-            step = 2; // Jump by spread size
-        }
-    }
-    
-    const target = Math.min(currentPage + step, pdfDoc.numPages);
+    const target = Math.min(currentPage + 1, pdfDoc.numPages);
     if (target !== currentPage) {
         navigateToPage(target, 'next');
     }
 }
 
+// -------------------------------------------------------------
 function goPrev() {
     if (!pdfDoc || isTransitioning) return;
-    
-    let step = 1;
-    if (isDoublePage) {
-        // If currently on spread (even-odd page, say 2-3), going back should land on page 1 (cover)
-        if (currentPage <= 3) {
-            navigateToPage(1, 'prev');
-            return;
-        } else {
-            step = 2;
-        }
-    }
-    
-    const target = Math.max(currentPage - step, 1);
+    const target = Math.max(currentPage - 1, 1);
     if (target !== currentPage) {
         navigateToPage(target, 'prev');
     }
@@ -633,19 +492,7 @@ function setupEventListeners() {
         renderCurrentPageDirectly();
     });
     
-    // View Mode Toggle (Single Page vs Double Page)
-    elements.viewModeToggle.addEventListener('click', () => {
-        isDoublePage = !isDoublePage;
-        elements.viewModeToggle.classList.toggle('active', isDoublePage);
-        elements.viewModeToggle.querySelector('i').className = isDoublePage 
-            ? 'fa-solid fa-book-open' 
-            : 'fa-regular fa-file';
-            
-        showToast(isDoublePage ? 'Switched to Booklet mode' : 'Switched to Single Page mode');
-        
-        // Re-render
-        renderCurrentPageDirectly();
-    });
+
     
     // Fullscreen Mode
     elements.fullscreenBtn.addEventListener('click', () => {
