@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thirunaal - August 5</title>
+    <title>മഞ്ഞുമാതാ ബസിലിക്ക തിരുനാൾ 2026 - August 5</title>
     <!-- Open Graph Metadata for Social Sharing (Cover Image Preview) -->
-    <meta property="og:title" content="Thirunaal - August 5">
+    <meta property="og:title" content="മഞ്ഞുമാതാ ബസിലിക്ക തിരുനാൾ 2026 - August 5">
     <meta property="og:image" content="https://thirunal-booklet-2026.vercel.app/pages/share-preview.png">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
@@ -15,23 +16,26 @@
 
     <!-- Twitter Card Metadata -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Thirunaal - August 5">
+    <meta name="twitter:title" content="മഞ്ഞുമാതാ ബസിലിക്ക തിരുനാൾ 2026 - August 5">
     <meta name="twitter:image" content="https://thirunal-booklet-2026.vercel.app/pages/share-preview.png">
 
     <!-- Google Fonts: Cinzel, Outfit, and Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="app" class="app-layout">
         <!-- Top Navigation Header -->
         <header class="app-header">
             <div class="header-logo">
-                <span class="brand-main">Thirunaal</span>
+                <span class="brand-main">മഞ്ഞുമാതാ ബസിലിക്ക തിരുനാൾ 2026</span>
                 <span class="brand-sep">|</span>
                 <span class="brand-sub">August 5</span>
             </div>
@@ -65,7 +69,7 @@
                     <button id="prevBtn" class="carousel-nav-btn prev" aria-label="Previous Page">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    
+
                     <div id="canvasViewport" class="canvas-viewport">
                         <!-- Dual slide wrapper for flicker-free transitions -->
                         <div id="slideContainer" class="slide-container">
@@ -81,7 +85,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <button id="nextBtn" class="carousel-nav-btn next" aria-label="Next Page">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
@@ -97,28 +101,34 @@
         <!-- Bottom Controller Bar -->
         <footer id="appFooter" class="app-footer">
             <div class="footer-section navigation-section">
-                <button id="firstPageBtn" class="icon-btn" title="First Page"><i class="fa-solid fa-angles-left"></i></button>
-                <button id="prevPageBtn" class="icon-btn" title="Previous Page"><i class="fa-solid fa-angle-left"></i></button>
-                
+                <button id="firstPageBtn" class="icon-btn" title="First Page"><i
+                        class="fa-solid fa-angles-left"></i></button>
+                <button id="prevPageBtn" class="icon-btn" title="Previous Page"><i
+                        class="fa-solid fa-angle-left"></i></button>
+
                 <div class="page-selector">
                     <input type="number" id="pageNumberInput" min="1" max="16" value="1">
                     <span>/</span>
                     <span id="totalPagesLabel">16</span>
                 </div>
 
-                <button id="nextPageBtn" class="icon-btn" title="Next Page"><i class="fa-solid fa-angle-right"></i></button>
-                <button id="lastPageBtn" class="icon-btn" title="Last Page"><i class="fa-solid fa-angles-right"></i></button>
+                <button id="nextPageBtn" class="icon-btn" title="Next Page"><i
+                        class="fa-solid fa-angle-right"></i></button>
+                <button id="lastPageBtn" class="icon-btn" title="Last Page"><i
+                        class="fa-solid fa-angles-right"></i></button>
             </div>
 
             <div class="footer-section zoom-section">
                 <button id="zoomOutBtn" class="icon-btn" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
                 <span id="zoomLevelLabel" class="zoom-level">100%</span>
                 <button id="zoomInBtn" class="icon-btn" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
-                <button id="zoomFitBtn" class="icon-btn" title="Fit to Screen"><i class="fa-solid fa-expand"></i></button>
+                <button id="zoomFitBtn" class="icon-btn" title="Fit to Screen"><i
+                        class="fa-solid fa-expand"></i></button>
             </div>
 
             <div class="footer-section settings-section">
-                <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen"><i class="fa-solid fa-maximize"></i></button>
+                <button id="fullscreenBtn" class="icon-btn" title="Toggle Fullscreen"><i
+                        class="fa-solid fa-maximize"></i></button>
             </div>
         </footer>
 
@@ -129,4 +139,5 @@
     <script src="flip-engine.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
